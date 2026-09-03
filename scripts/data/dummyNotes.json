@@ -1,0 +1,124 @@
+[
+  {
+    "type": "text",
+    "title": "How neural networks learn",
+    "content": "Neural networks learn through a process called backpropagation. They adjust their internal weights and biases to minimize the error between their predictions and the actual targets. This optimization is typically done using gradient descent algorithms.",
+    "tags": ["AI", "machine learning"]
+  },
+  {
+    "type": "text",
+    "title": "The training process of deep learning models",
+    "content": "Deep learning models are trained by iteratively passing data forward through layers and propagating the loss backwards. The optimizer updates the network parameters incrementally. A well-chosen learning rate is crucial for convergence.",
+    "tags": ["AI", "deep learning"]
+  },
+  {
+    "type": "text",
+    "title": "Understanding REST API design",
+    "content": "REST APIs rely on stateless communication over HTTP. Resources are identified by URIs and manipulated using standard methods like GET, POST, PUT, and DELETE. Consistent naming conventions make the API intuitive.",
+    "tags": ["web", "api"]
+  },
+  {
+    "type": "text",
+    "title": "Best practices for building web service endpoints",
+    "content": "When creating HTTP endpoints, focus on resource-oriented URLs and proper status codes. Maintain statelessness to allow for scalability. Always version your endpoints to ensure backwards compatibility.",
+    "tags": ["backend", "web architecture"]
+  },
+  {
+    "type": "text",
+    "title": "Introduction to Git version control",
+    "content": "Git allows developers to track history and collaborate efficiently. It uses a decentralized architecture where everyone has a full copy of the repository. Commits represent snapshots of the project at a specific point in time.",
+    "tags": ["tools", "git"]
+  },
+  {
+    "type": "text",
+    "title": "Managing code changes with distributed versioning",
+    "content": "Distributed source control systems empower teams to work independently on branches. Changes are later merged into the main line, handling conflicts if necessary. This workflow ensures that feature development doesn't block the main release.",
+    "tags": ["devops", "source control"]
+  },
+  {
+    "type": "text",
+    "title": "JavaScript closures explained",
+    "content": "A closure is a feature in JavaScript where an inner function has access to the outer function's variables. This access persists even after the outer function has returned. Closures are often used for data privacy and function factories.",
+    "tags": ["javascript", "programming"]
+  },
+  {
+    "type": "text",
+    "title": "How functions remember their lexical scope",
+    "content": "In some programming languages, a function encapsulates the environment in which it was created. It retains references to its surrounding state, allowing it to read and write variables defined outside its immediate block. This is fundamental for callbacks and event handlers.",
+    "tags": ["concepts", "scope"]
+  },
+  {
+    "type": "text",
+    "title": "Authentication and authorization fundamentals",
+    "content": "Securing web applications involves two distinct steps: verifying identity and checking permissions. The former proves who the user is, often via passwords or tokens. The latter dictates what resources the user is permitted to access.",
+    "tags": ["security", "auth"]
+  },
+  {
+    "type": "text",
+    "title": "Database indexing strategies",
+    "content": "To speed up data retrieval, databases use data structures like B-trees or hash maps. Creating an index on frequently queried columns significantly reduces search time. However, excessive indexing can slow down write operations.",
+    "tags": ["database", "performance"]
+  },
+  {
+    "type": "text",
+    "title": "Containerization with Docker",
+    "content": "Docker packages applications and their dependencies into standardized units. These isolated environments ensure consistent execution across different operating systems. They are lighter and start faster than traditional virtual machines.",
+    "tags": ["devops", "docker"]
+  },
+  {
+    "type": "text",
+    "title": "Responsive web design",
+    "content": "Modern interfaces must adapt to various screen sizes and orientations. Using CSS media queries and fluid grids allows content to reflow naturally. The goal is to provide an optimal viewing experience from large monitors to small handheld devices.",
+    "tags": ["css", "frontend"]
+  },
+  {
+    "type": "text",
+    "title": "Classic Italian Pasta Recipe",
+    "content": "Boil water with a generous amount of salt before adding the spaghetti. Cook until al dente. In a separate pan, sauté garlic in olive oil, then toss the pasta in it with some grated parmesan.",
+    "tags": ["food", "cooking"]
+  },
+  {
+    "type": "text",
+    "title": "The French Revolution",
+    "content": "Beginning in 1789, this period saw radical social and political upheaval in France. It led to the overthrow of the monarchy and the rise of democratic ideals. Key events include the storming of the Bastille and the Reign of Terror.",
+    "tags": ["history", "europe"]
+  },
+  {
+    "type": "text",
+    "title": "Indoor gardening tips",
+    "content": "Ensure your houseplants receive adequate, indirect sunlight. Overwatering is a common mistake; allow the top layer of soil to dry out between waterings. Use pots with drainage holes to prevent root rot.",
+    "tags": ["plants", "hobby"]
+  },
+  {
+    "type": "text",
+    "title": "Yoga and meditation basics",
+    "content": "Practicing mindfulness can reduce stress and improve focus. Start with simple stretching postures combined with deep, controlled breathing. Consistency is more important than duration when building this habit.",
+    "tags": ["health", "wellness"]
+  },
+  {
+    "type": "link",
+    "title": "Express.js GitHub Repository",
+    "content": "Fast, unopinionated, minimalist web framework for node. This repository contains the core source code, issue tracker, and contribution guidelines for the Express web framework ecosystem.",
+    "tags": ["nodejs", "open-source"],
+    "linkUrl": "https://github.com/expressjs/express"
+  },
+  {
+    "type": "link",
+    "title": "Semantic Search on Wikipedia",
+    "content": "Semantic search seeks to improve search accuracy by understanding the searcher's intent and the contextual meaning of terms. It contrasts with purely lexical or keyword-based search.",
+    "tags": ["search", "nlp"],
+    "linkUrl": "https://en.wikipedia.org/wiki/Semantic_search"
+  },
+  {
+    "type": "markdown",
+    "title": "Setting up a Node.js project",
+    "content": "# Project Setup\n\nTo initialize a new project, run:\n```bash\nnpm init -y\n```\n\n## Dependencies\nInstall your core packages like express and dotenv. Don't forget to configure your `.gitignore` to exclude the `node_modules` directory before committing.",
+    "tags": ["nodejs", "guide"]
+  },
+  {
+    "type": "markdown",
+    "title": "Adjusting Linux screen brightness",
+    "content": "# Screen Display Management\n\nSometimes your monitor is too harsh on the eyes in the dark. You can manually tweak the backlight value via sysfs or use a handy utility like `xrandr`.\n\nFor example:\n`xrandr --output eDP-1 --brightness 0.7`\n\nThis makes working late at night much more comfortable.",
+    "tags": ["linux", "desktop"]
+  }
+]
