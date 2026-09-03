@@ -1,11 +1,11 @@
 {
   "name": "mindmesh-backend",
   "version": "1.0.0",
-  "description": "MindMesh: A Semantic Knowledge Management Platform — Backend API",
-  "main": "src/index.js",
+  "description": "MindMesh — Semantic Knowledge Management Platform (Backend API)",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
     "seed": "node ../scripts/seedDummyData.js",
     "seed:clear": "node ../scripts/seedDummyData.js --clear"
   },
@@ -13,14 +13,16 @@
     "mindmesh",
     "semantic-search",
     "knowledge-management",
+    "vector-embeddings",
     "vector-search",
     "mongodb-atlas"
   ],
   "author": "MindMesh Team (Shrey Garg, Mayank Prince Narang, Devansh Sharma)",
   "license": "ISC",
   "dependencies": {
-    "@google/generative-ai": "^0.21.0",
+    "@google/generative-ai": "^0.24.0",
     "cheerio": "^1.0.0",
+    "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
@@ -32,7 +34,7 @@
     "metascraper-publisher": "^5.45.28",
     "metascraper-title": "^5.45.28",
     "metascraper-url": "^5.45.28",
-    "mongoose": "^8.9.5"
+    "mongoose": "^8.12.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
