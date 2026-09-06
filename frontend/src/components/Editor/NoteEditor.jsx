@@ -2,17 +2,19 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import NoteTypeSelector from './NoteTypeSelector';
 import EditorToolbar from './EditorToolbar';
 import MarkdownPreview from './MarkdownPreview';
-import { saveDraft, getUrlMetadata } from '../../services/apiMock';
+import { saveDraft, getUrlMetadata } from '../../services';
 
-export default function NoteEditor({ note = null, onSave }) {
+export default function NoteEditor({ note = null, onSave, brains = [] }) {
   const [title, setTitle] = useState(note?.title || '');
   const [content, setContent] = useState(note?.content || '');
+  const [history, setHistory] = useState({ past: [], present: note?.content || '', future: [] });
   const [noteType, setNoteType] = useState(note?.type || 'markdown');
   const [urlInput, setUrlInput] = useState(note?.url || '');
   const [urlMeta, setUrlMeta] = useState(note?.metadata || null);
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState(null);
   const [showPreview, setShowPreview] = useState(true);
+  const [selectedBrain, setSelectedBrain] = useState(note?.brainId || '');
   const textareaRef = useRef(null);
   const saveTimerRef = useRef(null);
 
@@ -20,11 +22,11 @@ export default function NoteEditor({ note = null, onSave }) {
   const autoSave = useCallback(async () => {
     if (!title && !content) return;
     setSaving(true);
-    const result = await saveDraft({ title, content, type: noteType, url: urlInput });
+    const result = await saveDraft({ id: note?.id, title, content, type: noteType, url: urlInput, brainId: selectedBrain });
     setLastSaved(result.savedAt);
     setSaving(false);
     if (onSave) onSave(result);
-  }, [title, content, noteType, urlInput, onSave]);
+  }, [note?.id, title, content, noteType, urlInput, selectedBrain, onSave]);
 
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
@@ -37,11 +39,19 @@ export default function NoteEditor({ note = null, onSave }) {
     if (note) {
       setTitle(note.title || '');
       setContent(note.content || '');
+      setHistory({ past: [], present: note.content || '', future: [] });
       setNoteType(note.type || 'markdown');
       setUrlInput(note.url || '');
       setUrlMeta(note.metadata || null);
     }
   }, [note]);
+
+  // Set default brain if none selected
+  useEffect(() => {
+    if (!selectedBrain && brains.length > 0 && !note?.brainId) {
+      setSelectedBrain(brains[0].id);
+    }
+  }, [brains, selectedBrain, note]);
 
   // URL metadata fetch
   const handleFetchUrl = async () => {
@@ -56,6 +66,48 @@ export default function NoteEditor({ note = null, onSave }) {
     }
   };
 
+  const updateContent = (newContent) => {
+    setHistory((prev) => ({
+      past: [...prev.past, prev.present],
+      present: newContent,
+      future: []
+    }));
+    setContent(newContent);
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      
+      const newContent = content.substring(0, start) + '  ' + content.substring(end);
+      updateContent(newContent);
+      
+      setTimeout(() => {
+        textarea.selectionStart = textarea.selectionEnd = start + 2;
+      }, 0);
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+      e.preventDefault();
+      if (history.past.length > 0) {
+        const previous = history.past[history.past.length - 1];
+        const newPast = history.past.slice(0, -1);
+        setHistory({ past: newPast, present: previous, future: [history.present, ...history.future] });
+        setContent(previous);
+      }
+    } else if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+      e.preventDefault();
+      if (history.future.length > 0) {
+        const next = history.future[0];
+        const newFuture = history.future.slice(1);
+        setHistory({ past: [...history.past, history.present], present: next, future: newFuture });
+        setContent(next);
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-full gap-4 animate-fade-in">
       {/* Top bar */}
@@ -63,35 +115,48 @@ export default function NoteEditor({ note = null, onSave }) {
         <NoteTypeSelector selected={noteType} onChange={setNoteType} />
         <div className="flex items-center gap-3">
           {saving && (
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 text-xs text-[#71717a]">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
               Saving...
             </span>
           )}
           {!saving && lastSaved && (
-            <span className="flex items-center gap-1.5 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5 text-xs text-[#71717a]">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               Saved
             </span>
           )}
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className={`btn-ghost text-sm hidden md:flex items-center gap-1.5 ${showPreview ? 'text-cyan-400' : ''}`}
+            className={`btn-ghost text-sm hidden md:flex items-center gap-1.5 ${showPreview ? 'text-purple-400' : ''}`}
           >
             {showPreview ? '◧' : '□'} {showPreview ? 'Split' : 'Editor Only'}
           </button>
         </div>
       </div>
 
-      {/* Title */}
-      <input
-        id="note-title"
-        type="text"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-        placeholder="Untitled Note"
-        className="text-2xl sm:text-3xl font-bold bg-transparent border-none outline-none text-white placeholder-slate-600 w-full"
-      />
+      {/* Title & Brain selector */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <input
+          id="note-title"
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Untitled Note"
+          className="text-2xl sm:text-3xl font-bold bg-transparent border-none outline-none text-white placeholder-slate-600 w-full"
+        />
+        {brains.length > 0 && (
+          <select
+            value={selectedBrain}
+            onChange={(e) => setSelectedBrain(e.target.value)}
+            className="input-base sm:w-48"
+          >
+            {brains.map((b) => (
+              <option key={b.id} value={b.id}>{b.name}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* URL input (only when type = url) */}
       {noteType === 'url' && (
@@ -119,14 +184,14 @@ export default function NoteEditor({ note = null, onSave }) {
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-white truncate">{urlMeta.title}</p>
             <p className="text-xs text-slate-400 mt-0.5 truncate">{urlMeta.siteName}</p>
-            <p className="text-xs text-slate-500 mt-1 line-clamp-2">{urlMeta.description}</p>
+            <p className="text-xs text-[#71717a] mt-1 line-clamp-2">{urlMeta.description}</p>
           </div>
         </div>
       )}
 
       {/* Toolbar (markdown/text modes) */}
       {noteType !== 'url' && (
-        <EditorToolbar textareaRef={textareaRef} onInsert={setContent} />
+        <EditorToolbar textareaRef={textareaRef} onInsert={updateContent} />
       )}
 
       {/* Editor body */}
@@ -137,7 +202,8 @@ export default function NoteEditor({ note = null, onSave }) {
             ref={textareaRef}
             id="note-content"
             value={content}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={(e) => updateContent(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={noteType === 'url' ? 'Add your notes about this link...' : 'Start writing...'}
             className="flex-1 w-full p-4 bg-slate-900/40 border border-slate-700/30 rounded-xl
                        text-slate-200 placeholder-slate-600 outline-none resize-none font-mono text-sm
@@ -158,8 +224,8 @@ export default function NoteEditor({ note = null, onSave }) {
             {noteType === 'markdown' ? (
               <MarkdownPreview content={content} />
             ) : (
-              <div className="text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
-                {content || <span className="text-slate-600 italic">Nothing to preview</span>}
+              <div className="text-[#d4d4d8] whitespace-pre-wrap text-sm leading-relaxed">
+                {content || <span className="text-[#52525b] italic">Nothing to preview</span>}
               </div>
             )}
           </div>

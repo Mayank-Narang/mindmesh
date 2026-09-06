@@ -6,6 +6,197 @@
 
 const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
+let mockAuthToken = typeof window !== 'undefined' ? localStorage.getItem('mindmesh_token') : null;
+
+export function setAuthToken(token) {
+  mockAuthToken = token;
+}
+
+export function getAuthToken() {
+  if (!mockAuthToken && typeof window !== 'undefined') {
+    try {
+      mockAuthToken = localStorage.getItem('mindmesh_token');
+    } catch {
+      mockAuthToken = null;
+    }
+  }
+  return mockAuthToken;
+}
+
+export function onUnauthorized(handler) {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('mindmesh:unauthorized', handler);
+    return () => window.removeEventListener('mindmesh:unauthorized', handler);
+  }
+  return () => {};
+}
+
+// ─── Stateful Mock Users ─────────────────────────────────────
+
+const DEFAULT_MOCK_USERS = [
+  {
+    id: 'user-demo',
+    name: 'Demo User',
+    email: 'demo@mindmesh.io',
+    password: 'DemoPassword123!',
+    role: 'user',
+    createdAt: '2026-08-01T10:00:00Z',
+  },
+  {
+    id: 'user-2',
+    name: 'Alice Cooper',
+    email: 'alice@mindmesh.io',
+    password: 'Password123!',
+    role: 'collaborator',
+    createdAt: '2026-08-15T12:00:00Z',
+  },
+];
+
+let inMemoryUsers = null;
+
+function getMockUsers() {
+  if (typeof window === 'undefined') {
+    if (!inMemoryUsers) inMemoryUsers = [...DEFAULT_MOCK_USERS];
+    return inMemoryUsers;
+  }
+  try {
+    const stored = localStorage.getItem('mindmesh_mock_users');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    localStorage.setItem('mindmesh_mock_users', JSON.stringify(DEFAULT_MOCK_USERS));
+  } catch {
+    // ignore
+  }
+  return [...DEFAULT_MOCK_USERS];
+}
+
+function saveMockUsers(users) {
+  if (typeof window === 'undefined') {
+    inMemoryUsers = users;
+    return;
+  }
+  try {
+    localStorage.setItem('mindmesh_mock_users', JSON.stringify(users));
+  } catch {
+    // ignore
+  }
+}
+
+// ─── Authentication ─────────────────────────────────────────
+
+export async function login(email, password) {
+  await delay(300);
+  if (!email || !password) {
+    throw new Error('Email and password are required');
+  }
+  const normEmail = email.trim().toLowerCase();
+  const users = getMockUsers();
+  const user = users.find((u) => u.email.toLowerCase() === normEmail);
+  if (!user) {
+    throw new Error('Invalid email or password');
+  }
+  if (normEmail === 'demo@mindmesh.io' && (password === 'DemoPassword123!' || password === 'demo')) {
+    // matched
+  } else if (user.password !== password) {
+    throw new Error('Invalid email or password');
+  }
+
+  const token = `mock-jwt-token-${user.id}-${Date.now()}`;
+  setAuthToken(token);
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+    },
+  };
+}
+
+export async function signup(name, email, password) {
+  await delay(400);
+  if (!name || name.trim().length < 2) {
+    throw new Error('Full name must be at least 2 characters');
+  }
+  const normEmail = (email || '').trim().toLowerCase();
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!normEmail || !emailRegex.test(normEmail)) {
+    throw new Error('Please enter a valid email address');
+  }
+  if (!password || password.length < 6) {
+    throw new Error('Password must be at least 6 characters');
+  }
+
+  const users = getMockUsers();
+  const existing = users.find((u) => u.email.toLowerCase() === normEmail);
+  if (existing) {
+    throw new Error('An account with this email already exists. Please sign in instead.');
+  }
+
+  const newUser = {
+    id: `user-${Date.now()}`,
+    name: name.trim(),
+    email: normEmail,
+    password,
+    role: 'user',
+    createdAt: new Date().toISOString(),
+  };
+
+  users.push(newUser);
+  saveMockUsers(users);
+
+  const token = `mock-jwt-token-${newUser.id}-${Date.now()}`;
+  setAuthToken(token);
+  return {
+    token,
+    user: {
+      id: newUser.id,
+      name: newUser.name,
+      email: newUser.email,
+      role: newUser.role,
+      createdAt: newUser.createdAt,
+    },
+  };
+}
+
+export async function getMe() {
+  await delay(200);
+  const token = getAuthToken() || (typeof window !== 'undefined' ? localStorage.getItem('mindmesh_token') : null);
+  if (!token) {
+    throw new Error('Authentication required. Please provide a valid token.');
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const storedUser = localStorage.getItem('mindmesh_user');
+      if (storedUser) {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.email) {
+          return { user: parsed };
+        }
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  const users = getMockUsers();
+  const matched = users.find((u) => token.includes(u.id)) || users[0];
+  return {
+    user: {
+      id: matched.id,
+      name: matched.name,
+      email: matched.email,
+      role: matched.role,
+      createdAt: matched.createdAt,
+    },
+  };
+}
+
 // ─── Dummy Data ──────────────────────────────────────────────
 
 const BRAINS = [
@@ -14,7 +205,7 @@ const BRAINS = [
   { id: 'brain-3', name: 'Research', emoji: '🔬', noteCount: 31, color: '#34d399', createdAt: '2026-08-10T09:15:00Z' },
 ];
 
-const NOTES = [
+const DEFAULT_NOTES = [
   {
     id: 'note-1', brainId: 'brain-1', type: 'markdown', title: 'Linux Screen Brightness Fix',
     content: `# Fixing Screen Brightness on Arch Linux\n\nThe backlight controls stopped working after a kernel update.\n\n## Solution\n\nEdit the GRUB config and add the \`acpi_backlight=native\` parameter:\n\n\`\`\`bash\nsudo nano /etc/default/grub\nGRUB_CMDLINE_LINUX_DEFAULT="quiet acpi_backlight=native"\nsudo grub-mkconfig -o /boot/grub/grub.cfg\n\`\`\`\n\n> Reboot required after this change.\n\n### Alternative\nUse **brightnessctl** for manual control:\n- \`brightnessctl set 50%\`\n- \`brightnessctl set +10%\``,
@@ -61,6 +252,38 @@ const NOTES = [
   },
 ];
 
+let inMemoryNotes = null;
+
+function getMockNotes() {
+  if (typeof window === 'undefined') {
+    if (!inMemoryNotes) inMemoryNotes = [...DEFAULT_NOTES];
+    return inMemoryNotes;
+  }
+  try {
+    const stored = localStorage.getItem('mindmesh_mock_notes');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    localStorage.setItem('mindmesh_mock_notes', JSON.stringify(DEFAULT_NOTES));
+  } catch {
+    // ignore
+  }
+  return [...DEFAULT_NOTES];
+}
+
+function saveMockNotes(notes) {
+  if (typeof window === 'undefined') {
+    inMemoryNotes = notes;
+    return;
+  }
+  try {
+    localStorage.setItem('mindmesh_mock_notes', JSON.stringify(notes));
+  } catch {
+    // ignore
+  }
+}
+
 // ─── Search result sets keyed by concept ────────────────────
 
 const SEARCH_RESULT_MAP = {
@@ -96,18 +319,20 @@ const SEARCH_RESULT_MAP = {
 
 export async function getBrains() {
   await delay(400);
-  return [...BRAINS];
+  return getMockBrains();
 }
 
 export async function getNotes(brainId = null) {
   await delay(500);
-  if (brainId) return NOTES.filter((n) => n.brainId === brainId);
-  return [...NOTES];
+  const notes = getMockNotes();
+  if (brainId) return notes.filter((n) => n.brainId === brainId);
+  return notes;
 }
 
 export async function getNoteById(id) {
   await delay(300);
-  const note = NOTES.find((n) => n.id === id);
+  const notes = getMockNotes();
+  const note = notes.find((n) => n.id === id);
   if (!note) throw new Error(`Note not found: ${id}`);
   return { ...note };
 }
@@ -126,32 +351,231 @@ export async function searchNotes(query) {
     }
   }
   // Fallback: fuzzy match across all notes
-  const matches = NOTES.filter((n) =>
-    n.title.toLowerCase().includes(q) ||
-    n.content.toLowerCase().includes(q) ||
-    n.tags.some((t) => t.includes(q))
+  const notes = getMockNotes();
+  const matches = notes.filter((n) =>
+    (n.title && n.title.toLowerCase().includes(q)) ||
+    (n.content && n.content.toLowerCase().includes(q)) ||
+    (n.tags && n.tags.some((t) => t.includes(q)))
   ).map((n, i) => ({
     ...n,
     score: parseFloat((0.90 - i * 0.08).toFixed(2)),
-    snippet: n.content.substring(0, 120) + '...',
+    snippet: (n.content || '').substring(0, 120) + '...',
   }));
   return matches;
 }
 
 export async function saveDraft(note) {
   await delay(400);
+  const notes = getMockNotes();
+  let savedNote = { ...note };
+  
+  if (note.id) {
+    const idx = notes.findIndex(n => n.id === note.id);
+    if (idx >= 0) {
+      notes[idx] = { ...notes[idx], ...note, updatedAt: new Date().toISOString() };
+      savedNote = notes[idx];
+    } else {
+      savedNote = { ...note, id: `note-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), tags: note.tags || [] };
+      notes.push(savedNote);
+    }
+  } else {
+    savedNote = { ...note, id: `note-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), tags: note.tags || [] };
+    notes.push(savedNote);
+  }
+  
+  saveMockNotes(notes);
   console.log('[MindMesh Mock] Draft saved:', note.title || 'Untitled');
-  return { success: true, savedAt: new Date().toISOString() };
+  return { success: true, savedAt: new Date().toISOString(), note: savedNote };
 }
 
 export async function getUrlMetadata(url) {
   await delay(600);
+  let finalUrl = url || '';
+  if (finalUrl && !finalUrl.startsWith('http://') && !finalUrl.startsWith('https://')) {
+    finalUrl = 'https://' + finalUrl;
+  }
+  let hostname = 'unknown';
+  try { hostname = new URL(finalUrl).hostname; } catch(e) {}
+  
   return {
-    url,
-    title: 'Example Page — ' + new URL(url).hostname,
-    description: 'Automatically extracted metadata from ' + url,
-    siteName: new URL(url).hostname,
+    url: finalUrl,
+    title: 'Extracted Page — ' + hostname,
+    description: 'Automatically extracted metadata from ' + finalUrl,
+    siteName: hostname,
     image: null,
-    favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
+    favicon: `https://www.google.com/s2/favicons?domain=${hostname}&sz=64`,
   };
+}
+
+// ─── Brains (stateful) ──────────────────────────────────────
+
+let inMemoryBrains = null;
+
+function getMockBrains() {
+  if (typeof window === 'undefined') {
+    if (!inMemoryBrains) inMemoryBrains = [...BRAINS];
+    return inMemoryBrains;
+  }
+  try {
+    const stored = localStorage.getItem('mindmesh_mock_brains');
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+    localStorage.setItem('mindmesh_mock_brains', JSON.stringify(BRAINS));
+  } catch {
+    // ignore
+  }
+  return [...BRAINS];
+}
+
+function saveMockBrains(brains) {
+  if (typeof window === 'undefined') {
+    inMemoryBrains = brains;
+    return;
+  }
+  try {
+    localStorage.setItem('mindmesh_mock_brains', JSON.stringify(brains));
+  } catch {
+    // ignore
+  }
+}
+
+export async function createBrain(brain) {
+  await delay(300);
+  const brains = getMockBrains();
+  const newBrain = {
+    id: `brain-${Date.now()}`,
+    name: brain.name || 'Untitled Brain',
+    description: brain.description || '',
+    color: brain.color || '#22d3ee',
+    icon: brain.icon || '🧠',
+    noteCount: 0,
+    createdAt: new Date().toISOString(),
+  };
+  brains.push(newBrain);
+  saveMockBrains(brains);
+  return { brain: newBrain };
+}
+
+export async function updateBrain(id, brain) {
+  await delay(300);
+  const brains = getMockBrains();
+  const idx = brains.findIndex((b) => b.id === id);
+  if (idx < 0) throw new Error('Brain not found');
+  brains[idx] = { ...brains[idx], ...brain, id };
+  saveMockBrains(brains);
+  return { brain: brains[idx] };
+}
+
+export async function deleteBrain(id) {
+  await delay(300);
+  const brains = getMockBrains();
+  const filtered = brains.filter((b) => b.id !== id);
+  saveMockBrains(filtered);
+  return { message: 'Brain deleted, notes unlinked' };
+}
+
+export async function getBrainById(id) {
+  await delay(300);
+  const brains = getMockBrains();
+  const brain = brains.find((b) => b.id === id);
+  if (!brain) throw new Error('Brain not found');
+  const notes = NOTES.filter((n) => n.brainId === id);
+  return { brain, notes };
+}
+
+// ─── Sharing (mock) ─────────────────────────────────────────
+
+export async function shareBrain(id, email, permission = 'read') {
+  await delay(300);
+  const brains = getMockBrains();
+  const idx = brains.findIndex(b => b.id === id);
+  if (idx >= 0) {
+    if (!brains[idx].sharedWith) brains[idx].sharedWith = [];
+    brains[idx].sharedWith.push({ email, permission });
+    saveMockBrains(brains);
+    return { sharedWith: brains[idx].sharedWith };
+  }
+  throw new Error('Brain not found');
+}
+
+export async function unshareBrain(id, email) {
+  await delay(300);
+  const brains = getMockBrains();
+  const idx = brains.findIndex(b => b.id === id);
+  if (idx >= 0 && brains[idx].sharedWith) {
+    brains[idx].sharedWith = brains[idx].sharedWith.filter(s => s.email !== email);
+    saveMockBrains(brains);
+    return { sharedWith: brains[idx].sharedWith };
+  }
+  return { sharedWith: [] };
+}
+
+export async function shareNote(id, email, permission = 'read') {
+  await delay(300);
+  const notes = getMockNotes();
+  const idx = notes.findIndex(n => n.id === id);
+  if (idx >= 0) {
+    if (!notes[idx].sharedWith) notes[idx].sharedWith = [];
+    notes[idx].sharedWith.push({ email, permission });
+    saveMockNotes(notes);
+    return { sharedWith: notes[idx].sharedWith };
+  }
+  throw new Error('Note not found');
+}
+
+export async function unshareNote(id, email) {
+  await delay(300);
+  const notes = getMockNotes();
+  const idx = notes.findIndex(n => n.id === id);
+  if (idx >= 0 && notes[idx].sharedWith) {
+    notes[idx].sharedWith = notes[idx].sharedWith.filter(s => s.email !== email);
+    saveMockNotes(notes);
+    return { sharedWith: notes[idx].sharedWith };
+  }
+  return { sharedWith: [] };
+}
+
+export async function getSharedWithMe() {
+  await delay(400);
+  return {
+    brains: [
+      { id: 'brain-shared-1', name: 'Shared Project', emoji: '🤝', noteCount: 5, color: '#f59e0b', createdAt: '2026-08-20T10:00:00Z' },
+    ],
+    notes: [
+      { id: 'note-shared-1', type: 'markdown', title: 'Team Meeting Notes', content: 'Shared meeting notes from the project kickoff...', tags: ['meeting'], updatedAt: '2026-09-04T10:00:00Z', createdAt: '2026-08-20T10:00:00Z' },
+    ],
+  };
+}
+
+// ─── AI Q&A (mock) ──────────────────────────────────────────
+
+export async function askAI(question, brainId = null) {
+  await delay(800);
+  // Return a simple JSON response (the real one streams SSE)
+  return {
+    answer: `Based on your notes, here's what I found about "${question}": This is a mock AI response. In production, this would stream a real answer from Gemini using your notes as context.`,
+    sources: [
+      { id: 'note-1', title: 'Linux Screen Brightness Fix', snippet: 'Relevant content about your question...', score: 0.92 },
+      { id: 'note-5', title: 'Semantic vs Keyword Search', snippet: 'Additional context that helps answer this...', score: 0.85 },
+    ],
+  };
+}
+
+// ─── Profile ────────────────────────────────────────────────
+
+export async function updateProfile(profile) {
+  await delay(400);
+  const token = getAuthToken() || (typeof window !== 'undefined' ? localStorage.getItem('mindmesh_token') : null);
+  const currentUser = (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('mindmesh_user') || '{}') : {});
+  const updated = { ...currentUser, ...profile };
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem('mindmesh_user', JSON.stringify(updated));
+    } catch {
+      // ignore
+    }
+  }
+  return { user: updated };
 }
