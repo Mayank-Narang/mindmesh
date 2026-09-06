@@ -124,6 +124,8 @@ const noteSchema = new mongoose.Schema(
 noteSchema.index({ tags: 1 });
 noteSchema.index({ type: 1 });
 noteSchema.index({ createdAt: -1 });
+// Add a text index to support stemming (e.g. "dolls" matches "doll")
+noteSchema.index({ title: 'text', content: 'text' });
 
 // ---------------------------------------------------------------------------
 // Export

@@ -103,7 +103,7 @@ export async function getNotes(brainId = null) {
   const params = new URLSearchParams();
   if (brainId) params.set('brain', brainId);
   params.set('sort', '-updatedAt');
-  params.set('limit', '50');
+  params.set('limit', '1000');
   const data = await request(`/notes?${params}`);
   return data.notes;
 }
@@ -113,19 +113,26 @@ export async function getNoteById(id) {
 }
 
 export async function saveDraft(note) {
+  const payload = { ...note };
+  if (payload.brainId === 'unassigned') {
+    payload.brain = null;
+  } else if (payload.brainId) {
+    payload.brain = payload.brainId;
+  }
+  
   if (note._id || note.id) {
     // Update existing note
     const id = note._id || note.id;
     const result = await request(`/notes/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(note),
+      body: JSON.stringify(payload),
     });
     return { success: true, savedAt: result.updatedAt, note: result };
   }
   // Create new note
   const result = await request('/notes', {
     method: 'POST',
-    body: JSON.stringify(note),
+    body: JSON.stringify(payload),
   });
   return { success: true, savedAt: result.createdAt, note: result };
 }
@@ -153,31 +160,15 @@ export async function searchNotes(query) {
 // ─── Brains (placeholder until backend has brain routes) ────
 
 export async function getBrains() {
-  // Backend doesn't have brain routes yet — derive from notes
-  const notes = await getNotes();
-  const brainMap = new Map();
-  notes.forEach((n) => {
-    const bid = n.brain || 'default';
-    if (!brainMap.has(bid)) {
-      brainMap.set(bid, { id: bid, name: bid === 'default' ? 'General' : bid, emoji: '🧠', noteCount: 0, color: '#22d3ee', createdAt: n.createdAt });
-    }
-    brainMap.get(bid).noteCount++;
-  });
-  return Array.from(brainMap.values());
+  const data = await request('/brains');
+  return data.brains || data;
 }
 
 // ─── URL Metadata ───────────────────────────────────────────
 
 export async function getUrlMetadata(url) {
-  // No backend route for this yet — return a basic stub
-  return {
-    url,
-    title: new URL(url).hostname,
-    description: '',
-    siteName: new URL(url).hostname,
-    image: null,
-    favicon: `https://www.google.com/s2/favicons?domain=${new URL(url).hostname}&sz=64`,
-  };
+  const data = await request(`/notes/metadata?url=${encodeURIComponent(url)}`);
+  return data;
 }
 
 // ─── Brains ─────────────────────────────────────────────────
@@ -238,11 +229,57 @@ export async function getSharedWithMe() {
 
 // ─── AI Q&A ─────────────────────────────────────────────────
 
-export async function askAI(question, brainId = null) {
-  return request('/ai/ask', {
-    method: 'POST',
-    body: JSON.stringify({ question, brainId }),
-  });
+export async function askAI(question, brainId = null, { onSources, onMessage, onError, onDone } = {}) {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  try {
+    const res = await fetch(`${BASE}/ai/ask`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ question, brainId }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Request failed: ${res.status}`);
+    }
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split('\n\n');
+      buffer = parts.pop(); // keep the last incomplete part in the buffer
+
+      for (const part of parts) {
+        if (part.startsWith('event: ')) {
+          const lines = part.split('\n');
+          const eventMatch = lines[0].match(/event: (.*)/);
+          const dataMatch = lines[1]?.match(/data: (.*)/);
+          
+          if (eventMatch && dataMatch) {
+            const event = eventMatch[1];
+            const data = JSON.parse(dataMatch[1]);
+
+            if (event === 'sources' && onSources) onSources(data.sources);
+            if (event === 'message' && onMessage) onMessage(data.text);
+            if (event === 'error' && onError) onError(data.error);
+            if (event === 'done' && onDone) onDone();
+          }
+        }
+      }
+    }
+  } catch (err) {
+    if (onError) onError(err.message);
+  }
 }
 
 // ─── Profile ────────────────────────────────────────────────

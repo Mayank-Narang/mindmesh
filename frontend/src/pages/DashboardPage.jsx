@@ -28,13 +28,12 @@ export default function DashboardPage() {
 
   const formatDate = (d) => {
     const date = new Date(d);
-    const now = new Date();
-    const diffH = Math.floor((now - date) / 3600000);
-    if (diffH < 1) return 'Just now';
-    if (diffH < 24) return `${diffH}h ago`;
-    const diffD = Math.floor(diffH / 24);
-    if (diffD < 7) return `${diffD}d ago`;
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return date.toLocaleString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      hour: 'numeric', 
+      minute: '2-digit' 
+    });
   };
 
   return (
@@ -159,7 +158,9 @@ export default function DashboardPage() {
               </p>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {note.tags.map((tag) => (
-                  <span key={tag} className="text-[10px] text-[#52525b]">#{tag}</span>
+                  <span key={tag} className="text-[10px] text-[#71717a] bg-[#18181b] px-2 py-0.5 rounded-full border border-white/5">
+                    #{tag}
+                  </span>
                 ))}
               </div>
             </GlassCard>

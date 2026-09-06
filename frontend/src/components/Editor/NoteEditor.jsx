@@ -20,10 +20,14 @@ export default function NoteEditor({ note = null, onSave, brains = [] }) {
 
   // Manual save
   const handleSave = async () => {
-    if (!title && !content) return;
+    if (!title && !content && !(noteType === 'url' && urlInput)) return;
     setSaving(true);
     try {
-      const result = await saveDraft({ id: note?.id, title, content, type: noteType, url: urlInput, brainId: selectedBrain });
+      let finalTitle = title;
+      if (!finalTitle && noteType === 'url') {
+         finalTitle = urlMeta?.title || urlInput;
+      }
+      const result = await saveDraft({ id: note?.id, title: finalTitle, content, type: noteType, url: urlInput, urlMeta: noteType === 'url' ? urlMeta : null, brainId: selectedBrain });
       setLastSaved(result.savedAt);
       if (onSave) onSave(result);
     } catch (err) {

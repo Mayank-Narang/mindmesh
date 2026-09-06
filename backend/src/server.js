@@ -1,6 +1,7 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
 const app = require("./app");
+const { startCronJobs } = require("./jobs/cron");
 
 const PORT = process.env.PORT || 5000;
 const MONGODB_URI = process.env.MONGODB_URI;
@@ -19,6 +20,8 @@ async function start() {
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB Atlas");
     console.log("backend connected to db");
+
+    startCronJobs();
 
     app.listen(PORT, () => {
       console.log(`🚀 MindMesh API server running on http://localhost:${PORT}`);

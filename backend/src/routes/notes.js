@@ -25,6 +25,28 @@ function buildEmbeddingText(note) {
 }
 
 // ---------------------------------------------------------------------------
+// GET /api/notes/metadata  —  Live preview of URL metadata
+// ---------------------------------------------------------------------------
+router.get("/metadata", async (req, res, next) => {
+  try {
+    const { url } = req.query;
+    if (!url) {
+      return res.status(400).json({ error: "Missing 'url' query parameter" });
+    }
+    const metadata = await extractMetadata(url);
+    res.json({
+      siteName: metadata.siteName || metadata.publisher || "",
+      description: metadata.description || "",
+      image: metadata.image || "",
+      favicon: metadata.favicon || "",
+      title: metadata.title || "",
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Failed to extract metadata" });
+  }
+});
+
+// ---------------------------------------------------------------------------
 // POST /api/notes  —  Create a new note
 // ---------------------------------------------------------------------------
 router.post("/", async (req, res, next) => {
@@ -54,8 +76,8 @@ router.post("/", async (req, res, next) => {
             image: metadata.image || "",
             favicon: metadata.favicon || "",
           };
-          // Auto-populate title if empty
-          if (!note.title && metadata.title) {
+          // Auto-populate title if empty or if it equals the URL (fallback from frontend)
+          if ((!note.title || note.title === url) && metadata.title) {
             note.title = metadata.title;
           }
         }
@@ -98,15 +120,40 @@ router.post("/", async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get("/", async (req, res, next) => {
   try {
-    const filter = {};
+    const Brain = require("../models/Brain");
+    
+    // Find all brains the user has access to
+    const accessibleBrains = await Brain.find({
+      $or: [
+        { author: req.user.id },
+        { "sharedWith.user": req.user.id },
+        { "sharedWith.email": (req.user.email || "").toLowerCase() },
+      ],
+    }).select("_id");
+    const accessibleBrainIds = accessibleBrains.map((b) => b._id);
 
-    if (req.query.type) filter.type = req.query.type;
-    if (req.query.brain) filter.brain = req.query.brain;
-    if (req.query.author) filter.author = req.query.author;
-    if (req.query.tag) filter.tags = req.query.tag;
+    const userFilter = {
+      $or: [
+        { author: req.user.id },
+        { "sharedWith.user": req.user.id },
+        { "sharedWith.email": (req.user.email || "").toLowerCase() },
+        { brain: { $in: accessibleBrainIds } },
+      ],
+    };
+
+    const queryFilter = {};
+    if (req.query.type) queryFilter.type = req.query.type;
+    if (req.query.brain) queryFilter.brain = req.query.brain;
+    if (req.query.author) queryFilter.author = req.query.author;
+    if (req.query.tag) queryFilter.tags = req.query.tag;
+
+    const filter = { $and: [userFilter] };
+    if (Object.keys(queryFilter).length > 0) {
+      filter.$and.push(queryFilter);
+    }
 
     const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 20, 1), 1000); // Increased max limit to 1000 for dashboard
     const skip = (page - 1) * limit;
 
     // Sort string: prefix with "-" for descending (Mongoose convention)
@@ -333,11 +380,31 @@ router.post("/search", async (req, res, next) => {
         .json({ error: "Embedding service unavailable — try again later" });
     }
 
-    // Build optional pre-filter
-    const filter = {};
-    if (brain) filter.brain = new mongoose.Types.ObjectId(brain);
-    if (type) filter.type = type;
-    if (author) filter.author = new mongoose.Types.ObjectId(author);
+    // 3. Build mandatory access control filter
+    const Brain = require("../models/Brain");
+    const accessibleBrains = await Brain.find({
+      $or: [
+        { author: req.user.id },
+        { "sharedWith.user": req.user.id },
+        { "sharedWith.email": (req.user.email || "").toLowerCase() },
+      ],
+    }).select("_id");
+    const accessibleBrainIds = accessibleBrains.map((b) => b._id);
+
+    const userFilterArray = [
+      { author: new mongoose.Types.ObjectId(req.user.id) },
+      { "sharedWith.user": new mongoose.Types.ObjectId(req.user.id) },
+      { "sharedWith.email": (req.user.email || "").toLowerCase() },
+      { brain: { $in: accessibleBrainIds } },
+    ];
+    const securityMatch = { $or: userFilterArray };
+
+    // VectorSearch filter CANNOT contain fields that are not defined in the index.
+    // 'author', 'brain', 'type', 'tags' are indexed. 'sharedWith' is NOT.
+    const vectorFilter = {};
+    if (brain) vectorFilter.brain = new mongoose.Types.ObjectId(brain);
+    if (type) vectorFilter.type = type;
+    if (author) vectorFilter.author = new mongoose.Types.ObjectId(author);
 
     const pipeline = [
       {
@@ -346,9 +413,15 @@ router.post("/search", async (req, res, next) => {
           path: "embedding",
           queryVector: queryEmbedding,
           numCandidates,
-          limit,
-          ...(Object.keys(filter).length ? { filter } : {}),
+          limit: limit * 5, // retrieve more to allow post-filtering
+          ...(Object.keys(vectorFilter).length ? { filter: vectorFilter } : {}),
         },
+      },
+      {
+        $match: securityMatch // Post-filter for security (since sharedWith isn't vector-indexed)
+      },
+      {
+        $limit: limit
       },
       {
         $project: {
@@ -368,7 +441,36 @@ router.post("/search", async (req, res, next) => {
       },
     ];
 
-    const results = await Note.aggregate(pipeline);
+    let results = await Note.aggregate(pipeline);
+
+    // Filter out low-confidence semantic matches (Atlas vector score < 0.82)
+    results = results.filter(r => (r.score || 0) >= 0.82);
+
+    // Fallback: If vector search yields no results (which can happen with one-word queries like "dolls"),
+    // use a traditional text search which supports stemming (e.g. "dolls" matches "doll")
+    if (results.length === 0) {
+      const fallbackNotes = await Note.find(
+        { $text: { $search: query }, $and: [securityMatch] },
+        { score: { $meta: "textScore" } }
+      )
+        .sort({ score: { $meta: "textScore" } })
+        .limit(limit);
+
+      results = fallbackNotes.map((n) => ({
+        _id: n._id,
+        title: n.title,
+        type: n.type,
+        content: n.content,
+        url: n.url,
+        urlMeta: n.urlMeta,
+        tags: n.tags,
+        brain: n.brain,
+        author: n.author,
+        createdAt: n.createdAt,
+        updatedAt: n.updatedAt,
+        score: n.score || 1, // Fallback score
+      }));
+    }
 
     res.json({ query: query.trim(), results });
   } catch (err) {

@@ -73,6 +73,27 @@ router.get("/", async (req, res, next) => {
       })
     );
 
+    // Count unassigned notes
+    const unassignedCount = await Note.countDocuments({
+      brain: null,
+      $or: [
+        { author: req.user.id },
+        { "sharedWith.user": req.user.id },
+        { "sharedWith.email": (req.user.email || "").toLowerCase() },
+      ],
+    });
+
+    if (unassignedCount > 0) {
+      brainsWithCounts.push({
+        id: "unassigned",
+        name: "Unassigned",
+        description: "Notes without a brain",
+        color: "#9ca3af",
+        icon: "📥",
+        noteCount: unassignedCount,
+      });
+    }
+
     res.json({ brains: brainsWithCounts });
   } catch (err) {
     next(err);
@@ -84,6 +105,30 @@ router.get("/", async (req, res, next) => {
 // ---------------------------------------------------------------------------
 router.get("/:id", async (req, res, next) => {
   try {
+    if (req.params.id === "unassigned") {
+      const notes = await Note.find({
+        brain: null,
+        $or: [
+          { author: req.user.id },
+          { "sharedWith.user": req.user.id },
+          { "sharedWith.email": (req.user.email || "").toLowerCase() },
+        ],
+      })
+        .sort("-updatedAt")
+        .select("-embedding");
+
+      return res.json({
+        brain: {
+          id: "unassigned",
+          name: "Unassigned",
+          description: "Notes without a brain",
+          color: "#9ca3af",
+          icon: "📥",
+        },
+        notes,
+      });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
       return res.status(400).json({ error: "Invalid brain ID" });
     }

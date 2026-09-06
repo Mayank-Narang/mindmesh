@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { getBrains } from '../services/apiMock';
+import { getBrains } from '../services';
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', icon: (
@@ -46,8 +46,12 @@ export default function MainLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const location = useLocation();
 
+  const loadBrains = () => getBrains().then(setBrains);
+
   useEffect(() => {
-    getBrains().then(setBrains);
+    loadBrains();
+    window.addEventListener('brainsUpdated', loadBrains);
+    return () => window.removeEventListener('brainsUpdated', loadBrains);
   }, []);
 
   // Close sidebar on route change (mobile)
@@ -110,7 +114,7 @@ export default function MainLayout() {
             {brains.map((brain) => (
               <NavLink
                 key={brain.id}
-                to={`/?brain=${brain.id}`}
+                to={`/brains?id=${brain.id}`}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[#a1a1aa] hover:text-white hover:bg-[#18181b] transition-all duration-200"
               >
                 <span className="text-base">{brain.icon || brain.emoji || '🧠'}</span>

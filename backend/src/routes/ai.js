@@ -88,13 +88,11 @@ router.post("/ask", async (req, res) => {
 
     // Fallback: if no embedding, do a text search
     if (sources.length === 0) {
-      const fallbackNotes = await Note.find({
-        ...filter,
-        $or: [
-          { title: { $regex: question.trim(), $options: "i" } },
-          { content: { $regex: question.trim(), $options: "i" } },
-        ],
-      })
+      const fallbackNotes = await Note.find(
+        { $text: { $search: question }, ...filter },
+        { score: { $meta: "textScore" } }
+      )
+        .sort({ score: { $meta: "textScore" } })
         .limit(5)
         .select("title content type tags");
 
@@ -142,7 +140,7 @@ Answer:`;
     }
 
     const genAI = new GoogleGenerativeAI(geminiApiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-flash-latest" });
 
     const result = await model.generateContentStream({
       contents: [{ role: "user", parts: [{ text: prompt }] }],

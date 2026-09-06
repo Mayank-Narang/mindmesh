@@ -29,12 +29,14 @@ export default function AIPage() {
     setError(null);
 
     try {
-      const data = await askAI(question.trim());
-      setAnswer(data.answer || 'No answer generated.');
-      setSources(data.sources || []);
+      await askAI(question.trim(), null, {
+        onSources: (data) => setSources(data || []),
+        onMessage: (text) => setAnswer((prev) => prev + text),
+        onError: (errMsg) => setError(errMsg),
+        onDone: () => setLoading(false),
+      });
     } catch (err) {
       setError(err.message || 'Failed to get answer. Please try again.');
-    } finally {
       setLoading(false);
     }
   };
