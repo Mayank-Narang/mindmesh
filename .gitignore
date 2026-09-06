@@ -30,3 +30,7 @@ desktop.ini
 # Coverage & testing
 coverage/
 .nyc_output/
+
+# Synopsis document (binary, not tracked)
+MindMesh_Minor_Project_Synopsis(1).docx
+*.docx

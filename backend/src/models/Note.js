@@ -14,6 +14,31 @@ const urlMetaSchema = new mongoose.Schema(
 );
 
 // ---------------------------------------------------------------------------
+// Sub-schema: sharing entry
+// ---------------------------------------------------------------------------
+const sharedWithSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+    email: {
+      type: String,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
+    permission: {
+      type: String,
+      enum: ["read", "collaborator"],
+      default: "read",
+    },
+  },
+  { _id: false }
+);
+
+// ---------------------------------------------------------------------------
 // Main Note schema
 // ---------------------------------------------------------------------------
 const noteSchema = new mongoose.Schema(
@@ -80,6 +105,12 @@ const noteSchema = new mongoose.Schema(
     isEmbedded: {
       type: Boolean,
       default: false,
+    },
+
+    // ---- sharing -------------------------------------------------------
+    sharedWith: {
+      type: [sharedWithSchema],
+      default: [],
     },
   },
   {
