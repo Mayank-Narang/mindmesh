@@ -14,7 +14,7 @@ export default function NoteTypeSelector({ selected, onChange }) {
           className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
             selected === t.key
               ? 'bg-gradient-accent text-white shadow-glow-cyan'
-              : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
+              : 'text-slate-400 hover:text-white hover:bg-[#27272a]/60'
           }`}
         >
           <span className="text-xs">{t.icon}</span>

@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import SearchBar from '../components/Search/SearchBar';
 import SearchResults from '../components/Search/SearchResults';
-import { searchNotes } from '../services/apiMock';
+import { searchNotes } from '../services';
 
 export default function SearchPage() {
   const [results, setResults] = useState([]);
@@ -33,7 +33,7 @@ export default function SearchPage() {
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">
           Semantic <span className="text-gradient">Search</span>
         </h1>
-        <p className="text-slate-400 text-sm">
+        <p className="text-[#a1a1aa] text-sm">
           Find notes by meaning — not just keywords
         </p>
       </div>

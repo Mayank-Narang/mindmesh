@@ -35,20 +35,30 @@ export default {
           amber: '#fbbf24',
           rose: '#fb7185',
         },
+        linear: {
+          bg: '#0a0a0a',
+          surface: '#111111',
+          border: '#1f1f1f',
+          muted: '#3f3f46',
+          text: '#a1a1aa',
+          heading: '#fafafa',
+          accent: '#6366f1',
+          'accent-hover': '#4f46e5',
+        },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
-        'gradient-mesh': 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)',
-        'gradient-accent': 'linear-gradient(135deg, #22d3ee 0%, #8b5cf6 100%)',
-        'gradient-accent-hover': 'linear-gradient(135deg, #06b6d4 0%, #7c3aed 100%)',
-        'gradient-card': 'linear-gradient(135deg, rgba(34, 211, 238, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
+        'gradient-mesh': 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #0a0a0a 100%)',
+        'gradient-accent': 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        'gradient-accent-hover': 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+        'gradient-card': 'linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%)',
       },
       boxShadow: {
         'glass': '0 8px 32px rgba(0, 0, 0, 0.3)',
         'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.4)',
-        'glow-cyan': '0 0 20px rgba(34, 211, 238, 0.3)',
+        'glow-cyan': '0 0 20px rgba(99, 102, 241, 0.3)',
         'glow-violet': '0 0 20px rgba(139, 92, 246, 0.3)',
-        'glow-accent': '0 0 30px rgba(34, 211, 238, 0.15), 0 0 60px rgba(139, 92, 246, 0.1)',
+        'glow-accent': '0 0 30px rgba(99, 102, 241, 0.15), 0 0 60px rgba(139, 92, 246, 0.1)',
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-out',
@@ -86,7 +96,7 @@ export default {
           '50%': { transform: 'translateY(-10px)' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 20px rgba(34, 211, 238, 0.2)' },
+          '0%': { boxShadow: '0 0 20px rgba(99, 102, 241, 0.2)' },
           '100%': { boxShadow: '0 0 30px rgba(139, 92, 246, 0.3)' },
         },
       },
@@ -97,3 +107,4 @@ export default {
   },
   plugins: [],
 }
+

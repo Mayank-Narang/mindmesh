@@ -10,9 +10,9 @@ export default function SearchResults({ results, loading, hasSearched }) {
     return (
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
         <div className="text-6xl mb-4 animate-float">🧠</div>
-        <h3 className="text-xl font-semibold text-slate-300 mb-2">Search Your Mind</h3>
-        <p className="text-slate-500 max-w-md text-sm leading-relaxed">
-          Type a concept, idea, or question — MindMesh finds notes by <span className="text-cyan-400 font-medium">meaning</span>, not just keywords.
+        <h3 className="text-xl font-semibold text-[#d4d4d8] mb-2">Search Your Mind</h3>
+        <p className="text-[#71717a] max-w-md text-sm leading-relaxed">
+          Type a concept, idea, or question — MindMesh finds notes by <span className="text-purple-400 font-medium">meaning</span>, not just keywords.
         </p>
         <div className="flex flex-wrap justify-center gap-2 mt-6">
           {['brightness', 'auth security', 'vector search', 'react hooks'].map((q) => (
@@ -30,7 +30,7 @@ export default function SearchResults({ results, loading, hasSearched }) {
       <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
         <div className="text-5xl mb-4 opacity-40">🔍</div>
         <h3 className="text-lg font-semibold text-slate-400 mb-1">No matches found</h3>
-        <p className="text-slate-500 text-sm">Try a different query or broader concept.</p>
+        <p className="text-[#71717a] text-sm">Try a different query or broader concept.</p>
       </div>
     );
   }
@@ -41,7 +41,7 @@ export default function SearchResults({ results, loading, hasSearched }) {
         <p className="text-sm text-slate-400">
           <span className="text-white font-medium">{results.length}</span> results found
         </p>
-        <p className="text-xs text-slate-600">Ranked by semantic relevance</p>
+        <p className="text-xs text-[#52525b]">Ranked by semantic relevance</p>
       </div>
       {results.map((result, i) => (
         <ResultCard key={result.id} result={result} index={i} />

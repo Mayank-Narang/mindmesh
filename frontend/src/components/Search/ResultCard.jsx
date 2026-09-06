@@ -14,7 +14,7 @@ export default function ResultCard({ result, index }) {
 
   const scoreColor =
     result.score >= 0.9 ? 'text-emerald-400' :
-    result.score >= 0.7 ? 'text-cyan-400' :
+    result.score >= 0.7 ? 'text-purple-400' :
     'text-amber-400';
 
   return (
@@ -44,7 +44,7 @@ export default function ResultCard({ result, index }) {
           </p>
 
           {result.type === 'url' && result.url && (
-            <p className="text-xs text-slate-600 mt-2 truncate">{result.url}</p>
+            <p className="text-xs text-[#52525b] mt-2 truncate">{result.url}</p>
           )}
         </div>
 
@@ -53,11 +53,11 @@ export default function ResultCard({ result, index }) {
           <div className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
             {scorePercent}
           </div>
-          <div className="text-[10px] text-slate-500 uppercase tracking-wider font-medium">
+          <div className="text-[10px] text-[#71717a] uppercase tracking-wider font-medium">
             match
           </div>
           {/* Mini bar */}
-          <div className="w-10 h-1 bg-slate-800 rounded-full overflow-hidden mt-0.5">
+          <div className="w-10 h-1 bg-[#27272a] rounded-full overflow-hidden mt-0.5">
             <div
               className="h-full rounded-full bg-gradient-accent transition-all duration-700"
               style={{ width: `${scorePercent}%` }}
@@ -67,8 +67,8 @@ export default function ResultCard({ result, index }) {
       </div>
 
       {/* Open action */}
-      <div className="flex justify-end mt-3 pt-3 border-t border-slate-800/40">
-        <span className="text-xs text-slate-500 group-hover:text-cyan-400 transition-colors flex items-center gap-1">
+      <div className="flex justify-end mt-3 pt-3 border-t border-[#27272a]/40">
+        <span className="text-xs text-[#71717a] group-hover:text-purple-400 transition-colors flex items-center gap-1">
           Open in Editor
           <svg className="w-3.5 h-3.5 transform group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
