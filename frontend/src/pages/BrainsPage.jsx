@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getBrains, createBrain, deleteBrain, getBrainById } from '../services';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
+import ShareModal from '../components/ui/ShareModal';
 
 const BRAIN_COLORS = ['#22d3ee', '#8b5cf6', '#34d399', '#f59e0b', '#f472b6', '#60a5fa'];
 const BRAIN_ICONS = ['🧠', '💼', '🔬', '📚', '🎯', '💡', '🌍', '🎨'];
@@ -15,6 +16,7 @@ export default function BrainsPage() {
   const [brainNotes, setBrainNotes] = useState([]);
   const [newBrain, setNewBrain] = useState({ name: '', description: '', color: BRAIN_COLORS[0], icon: BRAIN_ICONS[0] });
   const [creating, setCreating] = useState(false);
+  const [shareNoteId, setShareNoteId] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -100,8 +102,9 @@ export default function BrainsPage() {
       </div>
 
       {showCreate && <CreateBrainModal newBrain={newBrain} setNewBrain={setNewBrain} onCreate={handleCreate} creating={creating} onClose={() => setShowCreate(false)} />}
-      {selectedBrain && <BrainDetail brain={selectedBrain} notes={brainNotes} onBack={() => setSelectedBrain(null)} onOpenNote={(id) => navigate(`/editor/${id}`)} />}
+      {selectedBrain && <BrainDetail brain={selectedBrain} notes={brainNotes} onBack={() => setSelectedBrain(null)} onOpenNote={(id) => navigate(`/editor/${id}`)} onShareNote={setShareNoteId} />}
       {!selectedBrain && <BrainsGrid brains={brains} onSelect={handleSelectBrain} onDelete={handleDelete} />}
+      {shareNoteId && <ShareModal noteId={shareNoteId} onClose={() => setShareNoteId(null)} />}
     </div>
   );
 }
@@ -146,7 +149,7 @@ function CreateBrainModal({ newBrain, setNewBrain, onCreate, creating, onClose }
   );
 }
 
-function BrainDetail({ brain, notes, onBack, onOpenNote }) {
+function BrainDetail({ brain, notes, onBack, onOpenNote, onShareNote }) {
   return (
     <div className="space-y-4">
       <button onClick={onBack} className="text-sm text-[#a1a1aa] hover:text-purple-400 flex items-center gap-1">
@@ -172,6 +175,9 @@ function BrainDetail({ brain, notes, onBack, onOpenNote }) {
               <GlassCard key={note.id} className="p-4" onClick={() => onOpenNote(note.id)}>
                 <div className="flex items-center gap-2 mb-2">
                   <Badge variant={note.type === 'url' ? 'cyan' : note.type === 'markdown' ? 'violet' : 'neutral'}>{note.type}</Badge>
+                  <button onClick={(e) => { e.stopPropagation(); onShareNote(note.id); }} className="opacity-0 group-hover:opacity-100 ml-auto text-[#a1a1aa] hover:text-purple-400">
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>
+                  </button>
                 </div>
                 <h4 className="font-medium text-white truncate">{note.title}</h4>
                 <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2">{note.content?.substring(0, 100)}...</p>

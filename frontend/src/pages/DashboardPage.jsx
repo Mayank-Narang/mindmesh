@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
 import MeshBackground from '../components/ui/MeshBackground';
+import ShareModal from '../components/ui/ShareModal';
 
 const TYPE_ICONS = { markdown: 'M↓', text: 'Aa', url: '🔗' };
 const TYPE_VARIANTS = { markdown: 'violet', text: 'slate', url: 'purple' };
@@ -12,6 +13,7 @@ const TYPE_VARIANTS = { markdown: 'violet', text: 'slate', url: 'purple' };
 export default function DashboardPage() {
   const [notes, setNotes] = useState([]);
   const [brains, setBrains] = useState([]);
+  const [shareNoteId, setShareNoteId] = useState(null);
   const navigate = useNavigate();
   const { user } = useAuth();
 
@@ -144,6 +146,12 @@ export default function DashboardPage() {
                   {TYPE_ICONS[note.type]} {note.type}
                 </Badge>
                 <span className="text-[10px] text-[#52525b] ml-auto">{formatDate(note.updatedAt)}</span>
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShareNoteId(note.id); }}
+                  className="opacity-0 group-hover:opacity-100 text-[#a1a1aa] hover:text-purple-400 transition-opacity ml-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z" /></svg>
+                </button>
               </div>
               <h3 className="font-semibold text-white truncate">{note.title}</h3>
               <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2 leading-relaxed">
@@ -158,6 +166,9 @@ export default function DashboardPage() {
           ))}
         </div>
       </div>
+      {shareNoteId && (
+        <ShareModal noteId={shareNoteId} onClose={() => setShareNoteId(null)} />
+      )}
     </div>
   );
 }
