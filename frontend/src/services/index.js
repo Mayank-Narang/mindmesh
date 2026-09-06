@@ -1,17 +1,4 @@
-/**
- * MindMesh — API Service Router
- * Switches between mock and real API based on VITE_USE_MOCK env variable.
- */
-
-const useMock = import.meta.env ? import.meta.env.VITE_USE_MOCK === 'true' : true;
-
-let api;
-
-if (useMock) {
-  api = await import('./apiMock.js');
-} else {
-  api = await import('./api.js');
-}
+import * as api from './api.js';
 
 export const getBrains = api.getBrains;
 export const getNotes = api.getNotes;
