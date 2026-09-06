@@ -319,7 +319,13 @@ const SEARCH_RESULT_MAP = {
 
 export async function getBrains() {
   await delay(400);
-  return getMockBrains();
+  const brains = getMockBrains();
+  const notes = getMockNotes();
+  // Dynamically compute noteCount
+  return brains.map(b => ({
+    ...b,
+    noteCount: notes.filter(n => n.brainId === b.id).length
+  }));
 }
 
 export async function getNotes(brainId = null) {
@@ -375,10 +381,18 @@ export async function saveDraft(note) {
       notes[idx] = { ...notes[idx], ...note, updatedAt: new Date().toISOString() };
       savedNote = notes[idx];
     } else {
+      if (note.brainId) {
+        const brainNotes = notes.filter(n => n.brainId === note.brainId);
+        if (brainNotes.length >= 10) throw new Error('Free plan limit: A brain cannot have more than 10 notes.');
+      }
       savedNote = { ...note, id: `note-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), tags: note.tags || [] };
       notes.push(savedNote);
     }
   } else {
+    if (note.brainId) {
+      const brainNotes = notes.filter(n => n.brainId === note.brainId);
+      if (brainNotes.length >= 10) throw new Error('Free plan limit: A brain cannot have more than 10 notes.');
+    }
     savedNote = { ...note, id: `note-${Date.now()}`, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), tags: note.tags || [] };
     notes.push(savedNote);
   }
@@ -481,8 +495,9 @@ export async function getBrainById(id) {
   const brains = getMockBrains();
   const brain = brains.find((b) => b.id === id);
   if (!brain) throw new Error('Brain not found');
-  const notes = NOTES.filter((n) => n.brainId === id);
-  return { brain, notes };
+  const notes = getMockNotes();
+  const brainNotes = notes.filter((n) => n.brainId === id);
+  return { brain, notes: brainNotes };
 }
 
 // ─── Sharing (mock) ─────────────────────────────────────────

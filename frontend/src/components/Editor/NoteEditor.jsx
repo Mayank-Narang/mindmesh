@@ -22,10 +22,15 @@ export default function NoteEditor({ note = null, onSave, brains = [] }) {
   const autoSave = useCallback(async () => {
     if (!title && !content) return;
     setSaving(true);
-    const result = await saveDraft({ id: note?.id, title, content, type: noteType, url: urlInput, brainId: selectedBrain });
-    setLastSaved(result.savedAt);
-    setSaving(false);
-    if (onSave) onSave(result);
+    try {
+      const result = await saveDraft({ id: note?.id, title, content, type: noteType, url: urlInput, brainId: selectedBrain });
+      setLastSaved(result.savedAt);
+      if (onSave) onSave(result);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   }, [note?.id, title, content, noteType, urlInput, selectedBrain, onSave]);
 
   useEffect(() => {
