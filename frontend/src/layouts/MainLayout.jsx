@@ -113,7 +113,7 @@ export default function MainLayout() {
                 to={`/?brain=${brain.id}`}
                 className="flex items-center gap-3 px-3 py-2 rounded-xl text-sm text-[#a1a1aa] hover:text-white hover:bg-[#18181b] transition-all duration-200"
               >
-                <span className="text-base">{brain.emoji}</span>
+                <span className="text-base">{brain.icon || brain.emoji || '🧠'}</span>
                 <span className="flex-1">{brain.name}</span>
                 <span className="text-xs text-[#3f3f46]">{brain.noteCount}</span>
               </NavLink>
