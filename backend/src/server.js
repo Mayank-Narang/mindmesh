@@ -15,8 +15,10 @@ if (!MONGODB_URI) {
 
 async function start() {
   try {
+    console.log("connecting to backend starting");
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB Atlas");
+    console.log("backend connected to db");
 
     app.listen(PORT, () => {
       console.log(`🚀 MindMesh API server running on http://localhost:${PORT}`);

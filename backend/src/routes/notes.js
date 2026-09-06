@@ -5,8 +5,13 @@ const {
   generateEmbedding,
   generateQueryEmbedding,
 } = require("../services/vector");
+const { extractMetadata } = require("../services/scraper");
+const { authenticate } = require("../middleware/auth");
 
 const router = express.Router();
+
+// Protect all note routes with JWT authentication
+router.use(authenticate);
 
 // ---------------------------------------------------------------------------
 // Helper: build a text blob for embedding from a note's fields
@@ -35,8 +40,30 @@ router.post("/", async (req, res, next) => {
       urlMeta: urlMeta || null,
       tags: tags || [],
       brain: brain || null,
-      author: author || null,
+      author: req.user?.id || author || null,
     });
+
+    // Auto-extract metadata for URL-type notes if URL is provided and no meta given
+    if (type === "url" && url && !urlMeta) {
+      try {
+        const metadata = await extractMetadata(url);
+        if (metadata && (metadata.title || metadata.description)) {
+          note.urlMeta = {
+            siteName: metadata.siteName || metadata.publisher || "",
+            description: metadata.description || "",
+            image: metadata.image || "",
+            favicon: metadata.favicon || "",
+          };
+          // Auto-populate title if empty
+          if (!note.title && metadata.title) {
+            note.title = metadata.title;
+          }
+        }
+      } catch (metaErr) {
+        // Metadata extraction failed — continue without it
+        console.warn("URL metadata extraction failed:", metaErr.message);
+      }
+    }
 
     // Generate vector embedding (non-blocking — note saves even if this fails)
     const embeddingText = buildEmbeddingText(note);
@@ -48,6 +75,7 @@ router.post("/", async (req, res, next) => {
     }
 
     await note.save();
+    console.log("note stored in db");
     res.status(201).json(note);
   } catch (err) {
     // Mongoose validation errors → 400
@@ -190,6 +218,86 @@ router.delete("/:id", async (req, res, next) => {
     if (!note) return res.status(404).json({ error: "Note not found" });
 
     res.json({ message: "Note deleted", id: req.params.id });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// POST /api/notes/:id/share  —  Share a note with a user by email<longcat_arg_value>// ---------------------------------------------------------------------------
+// POST /api/notes/:id/share  —  Share a note with a user by email
+// ---------------------------------------------------------------------------
+router.post("/:id/share", async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid note ID" });
+    }
+
+    const { email, permission } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ error: "An email is required" });
+    }
+    if (permission && !["read", "collaborator"].includes(permission)) {
+      return res.status(400).json({ error: "Permission must be 'read' or 'collaborator'" });
+    }
+
+    const note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).json({ error: "Note not found" });
+
+    if (!note.author || note.author.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Only the owner can share this note" });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const User = require("../models/User");
+    const targetUser = await User.findOne({ email: normalizedEmail });
+
+    const existingIdx = note.sharedWith.findIndex(
+      (s) => s.email.toLowerCase() === normalizedEmail
+    );
+
+    const entry = {
+      user: targetUser ? targetUser._id : null,
+      email: normalizedEmail,
+      permission: permission || "read",
+    };
+
+    if (existingIdx >= 0) {
+      note.sharedWith[existingIdx] = entry;
+    } else {
+      note.sharedWith.push(entry);
+    }
+
+    await note.save();
+    res.json({ sharedWith: note.sharedWith });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---------------------------------------------------------------------------
+// DELETE /api/notes/:id/share/:email  —  Unshare a note
+// ---------------------------------------------------------------------------
+router.delete("/:id/share/:email", async (req, res, next) => {
+  try {
+    if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+      return res.status(400).json({ error: "Invalid note ID" });
+    }
+
+    const note = await Note.findById(req.params.id);
+    if (!note) return res.status(404).json({ error: "Note not found" });
+
+    if (!note.author || note.author.toString() !== req.user.id) {
+      return res.status(403).json({ error: "Only the owner can unshare this note" });
+    }
+
+    const normalizedEmail = decodeURIComponent(req.params.email).toLowerCase();
+    note.sharedWith = note.sharedWith.filter(
+      (s) => s.email.toLowerCase() !== normalizedEmail
+    );
+
+    await note.save();
+    res.json({ sharedWith: note.sharedWith });
   } catch (err) {
     next(err);
   }
