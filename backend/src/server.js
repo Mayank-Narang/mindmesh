@@ -13,17 +13,12 @@ if (!MONGODB_URI) {
   process.exit(1);
 }
 
-const seedDemoUser = require('./seed');
-
 async function start() {
   try {
     console.log("connecting to backend starting");
     await mongoose.connect(MONGODB_URI);
     console.log("✅ Connected to MongoDB Atlas");
     console.log("backend connected to db");
-    
-    // Seed the demo user and initial data
-    await seedDemoUser();
 
     app.listen(PORT, () => {
       console.log(`🚀 MindMesh API server running on http://localhost:${PORT}`);
