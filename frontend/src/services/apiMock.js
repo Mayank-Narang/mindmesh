@@ -343,21 +343,32 @@ export async function getNoteById(id) {
   return { ...note };
 }
 
+const SEARCH_ALIASES = {
+  brightness: ['brightness', 'illumination', 'light', 'dark', 'screen', 'display'],
+  auth: ['auth', 'login', 'security', 'jwt', 'token', 'password', 'sign'],
+  search: ['search', 'semantic', 'keyword', 'find', 'query'],
+  react: ['react', 'hook', 'useeffect', 'state'],
+  vector: ['vector', 'embedding', 'cosine', 'similarity', 'database'],
+  ideas: ['idea', 'project', 'build', 'side project']
+};
+
 export async function searchNotes(query) {
   await delay(700);
   if (!query || !query.trim()) return [];
   const q = query.toLowerCase();
-  // Try to match a curated result set first
-  for (const [key, results] of Object.entries(SEARCH_RESULT_MAP)) {
-    if (q.includes(key)) {
-      return results.map((r) => {
-        const note = NOTES.find((n) => n.id === r.noteId);
+  const notes = getMockNotes();
+  
+  // Try to match a curated result set first (semantic mock)
+  for (const [key, aliases] of Object.entries(SEARCH_ALIASES)) {
+    if (aliases.some(alias => q.includes(alias))) {
+      return SEARCH_RESULT_MAP[key].map((r) => {
+        const note = notes.find((n) => n.id === r.noteId);
         return { ...note, score: r.score, snippet: r.snippet };
-      });
+      }).filter(n => n.id); // Filter out any undefined if note was deleted
     }
   }
+  
   // Fallback: fuzzy match across all notes
-  const notes = getMockNotes();
   const matches = notes.filter((n) =>
     (n.title && n.title.toLowerCase().includes(q)) ||
     (n.content && n.content.toLowerCase().includes(q)) ||
