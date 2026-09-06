@@ -101,14 +101,14 @@ export default function DashboardPage() {
             <GlassCard
               key={brain.id}
               className={`p-5 animate-fade-in-up animate-fade-in-up stagger-${i + 1}`}
-              onClick={() => navigate(`/?brain=${brain.id}`)}
+              onClick={() => navigate('/brains')}
             >
               <div className="flex items-center gap-3 mb-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
                   style={{ backgroundColor: brain.color + '20' }}
                 >
-                  {brain.emoji}
+                  {brain.icon || brain.emoji || '🧠'}
                 </div>
                 <div>
                   <h3 className="font-semibold text-white">{brain.name}</h3>
