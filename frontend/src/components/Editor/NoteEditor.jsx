@@ -18,8 +18,8 @@ export default function NoteEditor({ note = null, onSave, brains = [] }) {
   const textareaRef = useRef(null);
   const saveTimerRef = useRef(null);
 
-  // Auto-save with debounce
-  const autoSave = useCallback(async () => {
+  // Manual save
+  const handleSave = async () => {
     if (!title && !content) return;
     setSaving(true);
     try {
@@ -31,13 +31,7 @@ export default function NoteEditor({ note = null, onSave, brains = [] }) {
     } finally {
       setSaving(false);
     }
-  }, [note?.id, title, content, noteType, urlInput, selectedBrain, onSave]);
-
-  useEffect(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(autoSave, 2000);
-    return () => clearTimeout(saveTimerRef.current);
-  }, [title, content, autoSave]);
+  };
 
   // Populate from existing note
   useEffect(() => {
@@ -119,18 +113,18 @@ export default function NoteEditor({ note = null, onSave, brains = [] }) {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <NoteTypeSelector selected={noteType} onChange={setNoteType} />
         <div className="flex items-center gap-3">
-          {saving && (
-            <span className="flex items-center gap-1.5 text-xs text-[#71717a]">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              Saving...
+          {lastSaved && !saving && (
+            <span className="text-[10px] text-[#71717a] hidden sm:block">
+              Saved {new Date(lastSaved).toLocaleTimeString()}
             </span>
           )}
-          {!saving && lastSaved && (
-            <span className="flex items-center gap-1.5 text-xs text-[#71717a]">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Saved
-            </span>
-          )}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn-primary text-sm px-4 py-1.5"
+          >
+            {saving ? 'Saving...' : 'Save Note'}
+          </button>
           <button
             onClick={() => setShowPreview(!showPreview)}
             className={`btn-ghost text-sm hidden md:flex items-center gap-1.5 ${showPreview ? 'text-purple-400' : ''}`}
