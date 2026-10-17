@@ -154,10 +154,10 @@ export default function DashboardPage() {
               </div>
               <h3 className="font-semibold text-white truncate">{note.title}</h3>
               <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2 leading-relaxed">
-                {note.content.substring(0, 100)}...
+                {(note.content || '').substring(0, 100)}...
               </p>
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {note.tags.map((tag) => (
+                {(note.tags || []).map((tag) => (
                   <span key={tag} className="text-[10px] text-[#71717a] bg-[#18181b] px-2 py-0.5 rounded-full border border-white/5">
                     #{tag}
                   </span>

@@ -321,6 +321,27 @@ function createMockServer(port = 0) {
         return sendJson(200, { results });
       }
 
+      const noteShareMatch = pathname.match(/^\/api\/notes\/([^/]+)\/share(?:\/([^/]+))?$/);
+      if (noteShareMatch) {
+        const id = noteShareMatch[1];
+        const note = notes.get(id);
+        if (!note) return sendJson(404, { error: 'Note not found' });
+        if (note.author !== currentUser?.id) return sendJson(403, { error: 'Only owner can share note' });
+
+        if (method === 'POST') {
+          const { email, permission = 'read' } = body;
+          note.sharedWith = note.sharedWith || [];
+          note.sharedWith = note.sharedWith.filter(s => s.email !== email);
+          note.sharedWith.push({ email, permission });
+          return sendJson(200, { sharedWith: note.sharedWith });
+        }
+        if (method === 'DELETE') {
+          const email = decodeURIComponent(noteShareMatch[2] || '');
+          note.sharedWith = (note.sharedWith || []).filter(s => s.email !== email);
+          return sendJson(200, { sharedWith: note.sharedWith });
+        }
+      }
+
       const noteIdMatch = pathname.match(/^\/api\/notes\/([^/]+)$/);
       if (noteIdMatch) {
         const id = noteIdMatch[1];
@@ -333,6 +354,9 @@ function createMockServer(port = 0) {
           return sendJson(200, note);
         }
         if (method === 'DELETE') {
+          if (note.author !== currentUser?.id) {
+            return sendJson(403, { error: 'Only the author can delete this note' });
+          }
           notes.delete(id);
           return sendJson(200, { message: 'Note deleted' });
         }

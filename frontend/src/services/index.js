@@ -1,9 +1,10 @@
 /**
  * MindMesh — API Service Router
- * Switches between mock and real API based on VITE_USE_MOCK env variable.
+ * Defaults to the real API (api.js) for release builds and standard runtime.
+ * Switches to mock API (apiMock.js) ONLY when VITE_USE_MOCK === 'true'.
  */
 
-const useMock = import.meta.env ? import.meta.env.VITE_USE_MOCK === 'true' : true;
+const useMock = Boolean(import.meta.env && import.meta.env.VITE_USE_MOCK === 'true');
 
 let api;
 
@@ -42,8 +43,17 @@ export const shareNote = api.shareNote;
 export const unshareNote = api.unshareNote;
 export const getSharedWithMe = api.getSharedWithMe;
 
+// Note locking exports
+export const acquireNoteLock = api.acquireNoteLock || (async () => ({ locked: true }));
+export const renewNoteLock = api.renewNoteLock || (async () => ({ locked: true }));
+export const releaseNoteLock = api.releaseNoteLock || (async () => ({ locked: false }));
+
 // AI exports
 export const askAI = api.askAI;
 
 // Profile exports
 export const updateProfile = api.updateProfile;
+
+// Utility exports
+export const ApiError = api.ApiError || Error;
+export const normalizeEntity = api.normalizeEntity || ((x) => x);

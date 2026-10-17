@@ -420,7 +420,7 @@ export async function getUrlMetadata(url) {
     finalUrl = 'https://' + finalUrl;
   }
   let hostname = 'unknown';
-  try { hostname = new URL(finalUrl).hostname; } catch(e) {}
+  try { hostname = new URL(finalUrl).hostname; } catch { /* ignore */ }
   
   return {
     url: finalUrl,
@@ -577,23 +577,48 @@ export async function getSharedWithMe() {
 
 // ─── AI Q&A (mock) ──────────────────────────────────────────
 
-export async function askAI(question, brainId = null) {
-  await delay(800);
-  // Return a simple JSON response (the real one streams SSE)
+export async function askAI(question, _brainId = null, { onSources, onMessage, onError: _onError, onDone } = {}) {
+  await delay(400);
+  const sampleSources = [
+    { id: 'note-1', title: 'Linux Screen Brightness Fix', snippet: 'Relevant content about your question...', score: 0.92 },
+    { id: 'note-5', title: 'Semantic vs Keyword Search', snippet: 'Additional context that helps answer this...', score: 0.85 },
+  ];
+  if (onSources) onSources(sampleSources);
+
+  const words = `Based on your notes, here is what I found about "${question}".`.split(' ');
+  for (const word of words) {
+    if (onMessage) onMessage(word + ' ');
+    await delay(30);
+  }
+  if (onDone) onDone();
+
   return {
-    answer: `Based on your notes, here's what I found about "${question}": This is a mock AI response. In production, this would stream a real answer from Gemini using your notes as context.`,
-    sources: [
-      { id: 'note-1', title: 'Linux Screen Brightness Fix', snippet: 'Relevant content about your question...', score: 0.92 },
-      { id: 'note-5', title: 'Semantic vs Keyword Search', snippet: 'Additional context that helps answer this...', score: 0.85 },
-    ],
+    answer: `Based on your notes, here's what I found about "${question}": This is a mock AI response.`,
+    sources: sampleSources,
   };
+}
+
+// ─── Note Locking (mock) ────────────────────────────────────
+
+export async function acquireNoteLock(noteId) {
+  await delay(100);
+  return { locked: true, noteId, expiresAt: new Date(Date.now() + 300000).toISOString() };
+}
+
+export async function renewNoteLock(noteId) {
+  await delay(100);
+  return { locked: true, noteId, expiresAt: new Date(Date.now() + 300000).toISOString() };
+}
+
+export async function releaseNoteLock(noteId) {
+  await delay(100);
+  return { locked: false, noteId };
 }
 
 // ─── Profile ────────────────────────────────────────────────
 
 export async function updateProfile(profile) {
   await delay(400);
-  const token = getAuthToken() || (typeof window !== 'undefined' ? localStorage.getItem('mindmesh_token') : null);
   const currentUser = (typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('mindmesh_user') || '{}') : {});
   const updated = { ...currentUser, ...profile };
   if (typeof window !== 'undefined') {
