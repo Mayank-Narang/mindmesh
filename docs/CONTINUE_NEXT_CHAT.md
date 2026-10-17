@@ -3,7 +3,8 @@
 ## Current state
 
 Person 1 owns the backend. Person 2 owns the frontend/QA.
-Backend Milestone 3 (Chunked embeddings and parent-note result aggregation) is completed locally and documented for Person 2 in `docs/PERSON_2_HANDOFF.md`.
+- Person 2 has reviewed and confirmed the Search and Chunked Retrieval API contract.
+- Backend Milestone 4 (RAG grounded in retrieved chunks, compact JSON brain state, and embedding retries) is completed locally and documented in `docs/PERSON_1_WORKLOG.md` and `docs/PERSON_2_HANDOFF.md`.
 
 ## Completed locally by Person 1
 
@@ -30,51 +31,57 @@ Backend Milestone 3 (Chunked embeddings and parent-note result aggregation) is c
 - Added in-memory cosine fallback for local/test environments without Atlas cluster.
 - Preserved strict authorization: owner, note share, and brain share checks across all retrieval modes.
 - Added migration/reindex script (`backend/src/scripts/reindexChunks.js`) and npm script `npm run reindex`.
-- Added test suites (`backend/tests/chunking.test.js` and `backend/tests/retrieval.test.js`).
+- Confirmed by Person 2: UI displays chunk index badges and snippet previews.
 
-## Confirmed frontend contract (see docs/PERSON_2_HANDOFF.md)
-
-- Lock acquire returns `{ locked, holder, expiresAt, version, draft? }`.
-- Lock renew returns `{ locked, expiresAt, version }`.
-- Lock release returns `{ locked: false, version }`.
-- Search accepts `{ query?, mode, brain?, type?, author?, tags?, limit? }` and returns `{ query, mode, results }`.
-- Each search result includes:
-  - `id`: parent note ID (normalized `id`)
-  - `score`: similarity score or RRF rank
-  - `retrievalMode`: `"semantic"`, `"keyword"`, `"recency"`, or `"hybrid"`
-  - `snippet`: exact content of the best-matching chunk (for semantic/hybrid) or contextual keyword match
-  - `chunkIndex`: integer indicating which chunk produced the match (for chunked semantic search)
-- Hybrid scores are rankings, not percentages.
+### RAG & Background Jobs (Milestone 4)
+- Upgraded `POST /api/ai/ask` with authorized chunked retrieval:
+  - Enforces authorization for owner, direct note shares (`sharedWith.user` / `sharedWith.email`), and accessible brains.
+  - Validates `brainId` readability with HTTP 403 for unauthorized brains.
+  - Slices relevant note chunks via `$vectorSearch` and parent-note aggregation (with in-memory cosine fallback).
+  - Emits SSE `sources` containing `{ id, title, snippet, score, chunkIndex }`.
+  - Constructed strict prompt grounding requiring answers to cite sources using `[1]`, `[2]`, refusing speculation when context is insufficient.
+  - Streams Gemini response chunks via SSE `message` events, terminating with `done`.
+- Replaced count-only brain descriptions with compact generated JSON memory state (`backend/src/services/brainMemory.js` and `backend/src/jobs/cron.js`):
+  - Serializes `{ summary, noteCount, types, tags, topics, lastActivity }` to `brain.description` ($\le 500$ chars) and updates `brain.memoryState`.
+- Upgraded embedding service (`backend/src/services/vector.js`):
+  - Added in-memory LRU cache (`_cache` Map with eviction) for document and query embeddings.
+  - Added exponential backoff retry logic (up to 3 retries for 429 rate limits and 5xx transient server errors).
+- Hardened scraper service (`backend/src/services/scraper.js`):
+  - Added SSRF protection rejecting `localhost`, `127.0.0.1`, `::1`, private IP ranges (`10.x`, `192.168.x`, `172.16-31.x`), AWS/cloud metadata (`169.254.169.254`), and non-HTTP protocols.
+  - Configured safe timeouts (`SCRAPER_TIMEOUT_MS` default 5000ms).
 
 ## Verification completed
 
 ```powershell
 cd backend
-node --check src/models/NoteChunk.js src/models/Note.js src/models/Brain.js src/services/chunking.js src/services/access.js src/routes/notes.js src/routes/brains.js src/jobs/cron.js src/scripts/reindexChunks.js tests/access.test.js tests/chunking.test.js tests/retrieval.test.js
+node --check src/models/NoteChunk.js src/models/Note.js src/models/Brain.js src/services/chunking.js src/services/access.js src/services/vector.js src/services/scraper.js src/services/brainMemory.js src/routes/notes.js src/routes/brains.js src/routes/ai.js src/jobs/cron.js src/scripts/reindexChunks.js tests/access.test.js tests/chunking.test.js tests/retrieval.test.js tests/milestone4.test.js
 git diff --check
-node --test tests/access.test.js tests/chunking.test.js tests/retrieval.test.js
+npm test
 ```
 
-All 17 tests pass (17/17 pass, 0 fail). `git diff --check` passes.
+All 25 tests pass (25/25 pass, 0 fail). `git diff --check` passes.
 
-## Next task (Milestone 4)
+## Next task (Milestone 5)
 
-Complete RAG and background jobs:
-1. Make AI retrieval in `POST /api/ai/ask` use the authorized chunked retrieval rules, including permitted shared notes.
-2. Ground prompts in retrieved chunks and retain cited source references.
-3. Replace count-only brain descriptions with compact generated JSON memory state.
-4. Add retries/backoff/caching for embedding work and safe scraper timeouts.
-5. Update docs and coordinate with Person 2 for AI citation UI.
+Testing and production readiness:
+1. Environment validation on server startup (validate `JWT_SECRET`, `MONGODB_URI`, `GEMINI_API_KEY`, etc.).
+2. Production JWT secret policy and CORS allowlist configuration.
+3. Health check enhancements (`GET /api/health`).
+4. Backend `.env.example` and deployment verification.
+5. Coordinate full end-to-end release with Person 2.
 
 ## Important files
 
 - `docs/PERSON_1_WORKLOG.md` — full Person 1 plan and current state.
 - `docs/PERSON_2_HANDOFF.md` — frontend contract and Person 2 scope.
 - `docs/CONTINUE_NEXT_CHAT.md` — this continuation file.
+- `backend/src/routes/ai.js` — RAG streaming and cited source retrieval.
+- `backend/src/services/vector.js` — embeddings with retries and LRU cache.
+- `backend/src/services/brainMemory.js` — compact JSON memory state.
+- `backend/src/services/scraper.js` — SSRF-safe URL metadata extraction.
 - `backend/src/routes/notes.js` — authorization, locks, and retrieval modes.
 - `backend/src/services/chunking.js` — text splitting and chunk management.
 - `backend/src/models/NoteChunk.js` — chunk storage model.
-- `backend/src/services/access.js` — permission helpers.
 
 ## Preserve existing untracked files
 

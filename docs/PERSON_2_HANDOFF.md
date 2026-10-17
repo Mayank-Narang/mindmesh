@@ -96,7 +96,50 @@ Fields specific to retrieval:
 - `snippet`: string content of the highest-scoring chunk matching the query.
 - `chunkIndex`: integer (0-indexed) indicating which chunk produced the match (present on chunked semantic matches).
 
-> **Action required from Person 2**: Please review the above search result shape (especially `snippet` and `chunkIndex`) and confirm that it meets the frontend UI/card requirements before starting frontend search integration or merging.
+✓ **Confirmed by Person 2**: Search and chunked retrieval contract confirmed. UI displays chunk index badges (🧩 Chunk #{chunkIndex + 1}) and RRF rankings.
+
+### AI Q&A and RAG Streaming API delivered by Person 1
+
+`POST /api/ai/ask` accepts `{ question: string, brainId?: string }`.
+- `question`: non-empty string.
+- `brainId`: optional ObjectId. If supplied, only notes within that brain are retrieved for grounding (caller must have readable access, or HTTP 403 is returned).
+- Responses are streamed using Server-Sent Events (SSE).
+
+#### Stream Events Contract
+
+1. `event: sources`
+   Emitted first once relevant note chunks have been retrieved. Contains the cited source documents:
+   ```json
+   {
+     "sources": [
+       {
+         "id": "67b0ef1234567890abcdef12",
+         "title": "JWT Auth Architecture",
+         "snippet": "JWT tokens are verified using Bearer middleware...",
+         "score": 0.935,
+         "chunkIndex": 0
+       }
+     ]
+   }
+   ```
+2. `event: message`
+   Emitted iteratively as text chunks arrive from Gemini:
+   ```json
+   { "text": "Based on your notes, " }
+   ```
+3. `event: done`
+   Emitted when stream completes:
+   ```json
+   { "done": true }
+   ```
+4. `event: error`
+   Emitted if an unrecoverable failure occurs during generation:
+   ```json
+   { "error": "Failed to generate answer. Please try again." }
+   ```
+
+#### Citations
+AI answers cite retrieved sources using standard bracket notation: `[1]`, `[2]`, corresponding to the 1-indexed order of items in `sources`. Render citations as clickable badges pointing to source cards or parent notes.
 
 ## Your required implementation
 
