@@ -15,6 +15,20 @@ import ShareModal from '../components/ui/ShareModal';
 const BRAIN_COLORS = ['#22d3ee', '#8b5cf6', '#34d399', '#f59e0b', '#f472b6', '#60a5fa'];
 const BRAIN_ICONS = ['🧠', '💼', '🔬', '📚', '🎯', '💡', '🌍', '🎨'];
 
+function getBrainSummary(brain) {
+  if (!brain) return '';
+  if (brain.memoryState?.summary) return brain.memoryState.summary;
+  if (typeof brain.description === 'string' && brain.description.trim().startsWith('{')) {
+    try {
+      const parsed = JSON.parse(brain.description);
+      if (parsed.summary) return parsed.summary;
+    } catch {
+      // not JSON, fallback to plain text
+    }
+  }
+  return brain.description || 'No description';
+}
+
 export default function BrainsPage() {
   const [brains, setBrains] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -365,7 +379,7 @@ function BrainDetail({ brain, notes, onBack, onOpenNote, onShareNote, onShareBra
           </div>
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white">{brain.name}</h2>
-            <p className="text-[#a1a1aa] text-sm">{brain.description || 'No description'}</p>
+            <p className="text-[#a1a1aa] text-sm">{getBrainSummary(brain)}</p>
           </div>
           <div className="flex items-center gap-2">
             {brain.id !== 'unassigned' && (
@@ -492,7 +506,7 @@ function BrainsGrid({ brains, onSelect, onDelete, onShare, onEdit }) {
             )}
           </div>
           <h3 className="font-semibold text-white text-lg">{brain.name}</h3>
-          <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2">{brain.description || 'No description'}</p>
+          <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2">{getBrainSummary(brain)}</p>
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs text-[#52525b]">{brain.noteCount || 0} notes</span>
             <div className="h-1.5 flex-1 mx-3 bg-[#18181b] rounded-full overflow-hidden">
