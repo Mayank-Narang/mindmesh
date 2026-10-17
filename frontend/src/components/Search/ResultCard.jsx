@@ -62,6 +62,12 @@ export default function ResultCard({ result, index, mode = 'semantic', brains = 
               </Badge>
             )}
 
+            {typeof result.chunkIndex === 'number' && (
+              <Badge variant="cyan">
+                🧩 Chunk #{result.chunkIndex + 1}
+              </Badge>
+            )}
+
             {result.tags?.slice(0, 3).map((tag) => (
               <Badge key={tag} variant="slate">
                 #{tag}
@@ -105,13 +111,22 @@ export default function ResultCard({ result, index, mode = 'semantic', brains = 
                 Keyword rank
               </div>
             </div>
+          ) : mode === 'hybrid' ? (
+            <div className="text-center">
+              <span className="text-lg font-bold text-cyan-400 tabular-nums">
+                {rawScore < 1 ? rawScore.toFixed(3) : rawScore}
+              </span>
+              <div className="text-[10px] text-[#71717a] uppercase tracking-wider font-medium">
+                RRF rank
+              </div>
+            </div>
           ) : (
             <>
               <div className={`text-2xl font-bold tabular-nums ${scoreColor}`}>
                 {scorePercent}%
               </div>
               <div className="text-[10px] text-[#71717a] uppercase tracking-wider font-medium">
-                {mode === 'hybrid' ? 'Hybrid match' : 'Vector match'}
+                Vector match
               </div>
               <div className="w-12 h-1 bg-[#27272a] rounded-full overflow-hidden mt-0.5">
                 <div

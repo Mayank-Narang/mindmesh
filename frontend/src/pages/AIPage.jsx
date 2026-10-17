@@ -213,11 +213,18 @@ export default function AIPage() {
                       {source.title || 'Untitled Note'}
                     </span>
                   </div>
-                  {source.score && (
-                    <Badge variant="cyan">
-                      {Math.round(source.score * 100)}% match
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {typeof source.chunkIndex === 'number' && (
+                      <Badge variant="slate">
+                        Chunk #{source.chunkIndex + 1}
+                      </Badge>
+                    )}
+                    {source.score && (
+                      <Badge variant="cyan">
+                        {Math.round(source.score * 100)}% match
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {source.snippet && (

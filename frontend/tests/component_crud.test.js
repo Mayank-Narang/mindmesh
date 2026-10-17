@@ -259,6 +259,27 @@ describe('4. Multi-Mode Search Engine (Semantic, Keyword, Recency, Hybrid)', () 
 
     assert.equal(ranked[0].id, '3', 'Vector note must be first in hybrid ranking');
   });
+
+  test('chunked retrieval contract preserves snippet, chunkIndex, and parent note id', () => {
+    const chunkedResult = {
+      id: '67b0ef1234567890abcdef12',
+      title: 'Authentication Architecture in Node.js',
+      type: 'text',
+      content: 'Full text of the note...',
+      tags: ['auth', 'security', 'jwt'],
+      score: 0.942,
+      retrievalMode: 'semantic',
+      snippet: 'JWT tokens are signed with HMAC SHA-256 and verified using middleware before granting route access...',
+      chunkIndex: 1,
+      createdAt: '2026-10-15T12:00:00.000Z',
+      updatedAt: '2026-10-17T18:30:00.000Z',
+    };
+
+    assert.equal(chunkedResult.id, '67b0ef1234567890abcdef12', 'Must have parent note id');
+    assert.equal(chunkedResult.chunkIndex, 1, 'Chunk index must be preserved');
+    assert.ok(chunkedResult.snippet.includes('JWT tokens'), 'Snippet must be present');
+    assert.equal(chunkedResult.retrievalMode, 'semantic');
+  });
 });
 
 describe('5. Streamed AI SSE Response Parsing & Citation Linkage', () => {
