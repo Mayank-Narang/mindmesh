@@ -1,3 +1,4 @@
+/* oxlint-disable react/set-state-in-effect */
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { updateProfile } from '../services';
@@ -12,6 +13,8 @@ export default function SettingsPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    // eslint-disable-next-line react/set-state-in-effect
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');

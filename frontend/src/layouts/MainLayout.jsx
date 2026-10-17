@@ -56,8 +56,10 @@ export default function MainLayout() {
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
+    // eslint-disable-next-line react/set-state-in-effect
     setSidebarOpen(false);
-  }, [location]);
+  }, [location.pathname]);
 
   return (
     <div className="flex h-screen overflow-hidden">

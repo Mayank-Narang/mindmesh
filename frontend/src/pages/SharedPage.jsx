@@ -1,6 +1,8 @@
-import { useState, useEffect } from 'react';
+/* oxlint-disable react/set-state-in-effect */
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getSharedWithMe } from '../services';
+import { useAuth } from '../contexts/AuthContext';
 import GlassCard from '../components/ui/GlassCard';
 import Badge from '../components/ui/Badge';
 
@@ -8,24 +10,27 @@ export default function SharedPage() {
   const [brains, setBrains] = useState([]);
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  useEffect(() => {
-    loadShared();
-  }, []);
-
-  const loadShared = async () => {
+  const loadShared = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await getSharedWithMe();
       setBrains(data.brains || []);
       setNotes(data.notes || []);
     } catch (err) {
-      console.error('Failed to load shared items:', err);
+      setError(err.message || 'Failed to load shared items.');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    loadShared();
+  }, [loadShared]);
 
   if (loading) {
     return (
@@ -41,7 +46,35 @@ export default function SharedPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="max-w-2xl mx-auto py-12">
+        <GlassCard className="p-8 text-center space-y-4">
+          <div className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-400 flex items-center justify-center mx-auto text-xl font-bold">
+            ⚠️
+          </div>
+          <h2 className="text-xl font-bold text-white">Error Loading Shared Items</h2>
+          <p className="text-sm text-[#a1a1aa]">{error}</p>
+          <button onClick={loadShared} className="btn-primary text-sm px-4 py-2">
+            Retry
+          </button>
+        </GlassCard>
+      </div>
+    );
+  }
+
   const totalItems = brains.length + notes.length;
+
+  const getUserPermission = (item) => {
+    const entry = (item.sharedWith || []).find((s) => {
+      const sUserId = s.user?.id || s.user;
+      const currentId = user?.id;
+      const sEmail = (s.email || '').toLowerCase();
+      const currentEmail = (user?.email || '').toLowerCase();
+      return (sUserId && currentId && sUserId === currentId) || (sEmail && currentEmail && sEmail === currentEmail);
+    });
+    return entry?.permission || 'read';
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
@@ -51,14 +84,14 @@ export default function SharedPage() {
       </div>
 
       {totalItems === 0 ? (
-        <GlassCard className="p-8 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-[#18181b] flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-[#52525b]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-            </svg>
+        <GlassCard className="p-10 text-center">
+          <div className="w-16 h-16 rounded-2xl bg-[#18181b] flex items-center justify-center mx-auto mb-4 text-2xl">
+            🤝
           </div>
           <h3 className="text-lg font-medium text-white mb-2">Nothing shared yet</h3>
-          <p className="text-[#a1a1aa] text-sm">When someone shares a brain or note with you, it will appear here.</p>
+          <p className="text-[#a1a1aa] text-sm max-w-sm mx-auto">
+            When teammates share notes or brains with you, they will immediately appear here with your assigned permissions.
+          </p>
         </GlassCard>
       ) : (
         <>
@@ -66,19 +99,38 @@ export default function SharedPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-white">Shared Brains ({brains.length})</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {brains.map((brain) => (
-                  <GlassCard key={brain.id} className="p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg" style={{ backgroundColor: (brain.color || '#22d3ee') + '20' }}>
-                        {brain.icon || brain.emoji || '🧠'}
+                {brains.map((brain) => {
+                  const perm = getUserPermission(brain);
+                  return (
+                    <GlassCard
+                      key={brain.id}
+                      className="p-4 cursor-pointer group"
+                      onClick={() => navigate(`/brains?id=${brain.id}`)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-12 h-12 rounded-xl flex items-center justify-center text-xl"
+                          style={{ backgroundColor: (brain.color || '#22d3ee') + '20' }}
+                        >
+                          {brain.icon || brain.emoji || '🧠'}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-medium text-white truncate group-hover:text-purple-400 transition-colors">
+                              {brain.name}
+                            </h3>
+                            <Badge variant={perm === 'collaborator' ? 'violet' : 'neutral'}>
+                              {perm === 'collaborator' ? 'Can Edit' : 'Read Only'}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-[#52525b] mt-1">
+                            {brain.noteCount !== undefined ? `${brain.noteCount} notes` : 'Shared brain'}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-medium text-white">{brain.name}</h3>
-                        <p className="text-xs text-[#52525b]">{brain.noteCount || 0} notes</p>
-                      </div>
-                    </div>
-                  </GlassCard>
-                ))}
+                    </GlassCard>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -87,17 +139,38 @@ export default function SharedPage() {
             <div className="space-y-3">
               <h2 className="text-lg font-semibold text-white">Shared Notes ({notes.length})</h2>
               <div className="space-y-2">
-                {notes.map((note) => (
-                  <GlassCard key={note.id} className="p-4" onClick={() => navigate(`/editor/${note.id}`)}>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Badge variant={note.type === 'url' ? 'cyan' : note.type === 'markdown' ? 'violet' : 'neutral'}>
-                        {note.type}
-                      </Badge>
-                    </div>
-                    <h3 className="font-medium text-white">{note.title}</h3>
-                    <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2">{note.content?.substring(0, 150)}...</p>
-                  </GlassCard>
-                ))}
+                {notes.map((note) => {
+                  const perm = getUserPermission(note);
+                  return (
+                    <GlassCard
+                      key={note.id}
+                      className="p-4 cursor-pointer group"
+                      onClick={() => navigate(`/editor/${note.id}`)}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2">
+                          <Badge variant={note.type === 'url' ? 'cyan' : note.type === 'markdown' ? 'violet' : 'neutral'}>
+                            {note.type}
+                          </Badge>
+                          {note.tags?.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="slate">#{t}</Badge>
+                          ))}
+                        </div>
+
+                        <Badge variant={perm === 'collaborator' ? 'violet' : 'neutral'}>
+                          {perm === 'collaborator' ? 'Can Edit' : 'Read Only'}
+                        </Badge>
+                      </div>
+
+                      <h3 className="font-medium text-white group-hover:text-cyan-300 transition-colors truncate">
+                        {note.title}
+                      </h3>
+                      <p className="text-sm text-[#a1a1aa] mt-1 line-clamp-2">
+                        {note.content?.substring(0, 160)}
+                      </p>
+                    </GlassCard>
+                  );
+                })}
               </div>
             </div>
           )}
