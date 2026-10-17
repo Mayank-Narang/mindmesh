@@ -57,6 +57,42 @@ export default function AIPage() {
     'What did I learn about productivity and systems?',
   ];
 
+  const renderAnswerContent = () => {
+    if (!answer) return null;
+    const tokens = answer.split(/(\[\d+\])/g);
+    return tokens.map((part, i) => {
+      const match = part.match(/^\[(\d+)\]$/);
+      if (match) {
+        const citationNum = parseInt(match[1], 10);
+        const sourceIndex = citationNum - 1;
+        const source = sources[sourceIndex];
+        return (
+          <button
+            key={i}
+            type="button"
+            onClick={() => {
+              if (source?.id) {
+                const el = document.getElementById(`source-card-${source.id}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  el.classList.add('ring-2', 'ring-cyan-400');
+                  setTimeout(() => el.classList.remove('ring-2', 'ring-cyan-400'), 2500);
+                } else {
+                  navigate(`/editor/${source.id}`);
+                }
+              }
+            }}
+            title={source ? `${source.title || 'Note'} (${Math.round((source.score || 0) * 100)}% match)` : `Source [${citationNum}]`}
+            className="inline-flex items-center justify-center px-1.5 py-0.5 mx-0.5 rounded text-xs font-bold bg-purple-500/25 text-purple-300 hover:bg-cyan-500/20 hover:text-cyan-300 border border-purple-500/40 hover:border-cyan-400/50 transition-all cursor-pointer align-baseline"
+          >
+            [{citationNum}]
+          </button>
+        );
+      }
+      return part;
+    });
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div>
@@ -181,7 +217,7 @@ export default function AIPage() {
             ref={answerRef}
             className="text-[#d4d4d8] leading-relaxed whitespace-pre-wrap text-sm sm:text-base selection:bg-purple-500/30 font-sans"
           >
-            {answer}
+            {renderAnswerContent()}
           </div>
         </GlassCard>
       )}
@@ -201,7 +237,8 @@ export default function AIPage() {
             {sources.map((source, idx) => (
               <GlassCard
                 key={source.id || idx}
-                className="p-4 hover:border-cyan-400/50 cursor-pointer transition-all group"
+                id={`source-card-${source.id || idx}`}
+                className="p-4 hover:border-cyan-400/50 cursor-pointer transition-all group duration-300"
                 onClick={() => navigate(`/editor/${source.id}`)}
               >
                 <div className="flex items-center justify-between gap-2 mb-2">
@@ -213,11 +250,18 @@ export default function AIPage() {
                       {source.title || 'Untitled Note'}
                     </span>
                   </div>
-                  {source.score && (
-                    <Badge variant="cyan">
-                      {Math.round(source.score * 100)}% match
-                    </Badge>
-                  )}
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {typeof source.chunkIndex === 'number' && (
+                      <Badge variant="slate">
+                        Chunk #{source.chunkIndex + 1}
+                      </Badge>
+                    )}
+                    {source.score && (
+                      <Badge variant="cyan">
+                        {Math.round(source.score * 100)}% match
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
                 {source.snippet && (

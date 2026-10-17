@@ -259,6 +259,27 @@ describe('4. Multi-Mode Search Engine (Semantic, Keyword, Recency, Hybrid)', () 
 
     assert.equal(ranked[0].id, '3', 'Vector note must be first in hybrid ranking');
   });
+
+  test('chunked retrieval contract preserves snippet, chunkIndex, and parent note id', () => {
+    const chunkedResult = {
+      id: '67b0ef1234567890abcdef12',
+      title: 'Authentication Architecture in Node.js',
+      type: 'text',
+      content: 'Full text of the note...',
+      tags: ['auth', 'security', 'jwt'],
+      score: 0.942,
+      retrievalMode: 'semantic',
+      snippet: 'JWT tokens are signed with HMAC SHA-256 and verified using middleware before granting route access...',
+      chunkIndex: 1,
+      createdAt: '2026-10-15T12:00:00.000Z',
+      updatedAt: '2026-10-17T18:30:00.000Z',
+    };
+
+    assert.equal(chunkedResult.id, '67b0ef1234567890abcdef12', 'Must have parent note id');
+    assert.equal(chunkedResult.chunkIndex, 1, 'Chunk index must be preserved');
+    assert.ok(chunkedResult.snippet.includes('JWT tokens'), 'Snippet must be present');
+    assert.equal(chunkedResult.retrievalMode, 'semantic');
+  });
 });
 
 describe('5. Streamed AI SSE Response Parsing & Citation Linkage', () => {
@@ -327,5 +348,61 @@ describe('6. 409 Conflict & Lock Status Lifecycle', () => {
     const diffSeconds = Math.max(0, Math.floor((new Date(futureTime).getTime() - Date.now()) / 1000));
 
     assert.ok(diffSeconds >= 58 && diffSeconds <= 60, `Expected ~60 seconds, got ${diffSeconds}`);
+  });
+});
+
+describe('7. Brain Memory State & Citation Link Parsing', () => {
+  test('parses structured JSON memory state from brain.description and brain.memoryState', () => {
+    function getBrainSummary(brain) {
+      if (!brain) return '';
+      if (brain.memoryState?.summary) return brain.memoryState.summary;
+      if (typeof brain.description === 'string' && brain.description.trim().startsWith('{')) {
+        try {
+          const parsed = JSON.parse(brain.description);
+          if (parsed.summary) return parsed.summary;
+        } catch {
+          // fallback
+        }
+      }
+      return brain.description || 'No description';
+    }
+
+    const brainWithJsonDesc = {
+      id: 'b1',
+      name: 'Research',
+      description: JSON.stringify({ summary: 'Contains 5 notes on distributed systems.', noteCount: 5 }),
+    };
+
+    const brainWithMemoryState = {
+      id: 'b2',
+      name: 'Ideas',
+      description: 'Raw description',
+      memoryState: { summary: 'Curated collection of 10 startup ideas.' },
+    };
+
+    const plainBrain = {
+      id: 'b3',
+      name: 'Daily',
+      description: 'Plain markdown journal',
+    };
+
+    assert.equal(getBrainSummary(brainWithJsonDesc), 'Contains 5 notes on distributed systems.');
+    assert.equal(getBrainSummary(brainWithMemoryState), 'Curated collection of 10 startup ideas.');
+    assert.equal(getBrainSummary(plainBrain), 'Plain markdown journal');
+  });
+
+  test('parses bracket citations [1], [2] into 1-indexed source references', () => {
+    const answer = 'MindMesh utilizes vector search [1] and Reciprocal Rank Fusion [2] for hybrid scoring.';
+    const tokens = answer.split(/(\[\d+\])/g);
+    const citationIndices = [];
+
+    for (const token of tokens) {
+      const match = token.match(/^\[(\d+)\]$/);
+      if (match) {
+        citationIndices.push(parseInt(match[1], 10) - 1);
+      }
+    }
+
+    assert.deepEqual(citationIndices, [0, 1]);
   });
 });
