@@ -238,6 +238,8 @@ export function AuthProvider({ children }) {
   );
 }
 
+// oxlint-disable-next-line react/only-export-components
+// eslint-disable-next-line react/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {
