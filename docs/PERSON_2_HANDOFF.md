@@ -1,10 +1,10 @@
 # MindMesh Person 2 Handoff
 
-You own the frontend integration, collaboration experience, automated UI tests, and frontend deployment. Work on a separate branch named `codex/frontend-qa-completion`. Do not edit backend models, routes, services, cron jobs, or deployment code; Person 1 owns those files.
+You own the frontend integration, collaboration experience, automated UI tests, and frontend deployment. Work on a separate branch named `codex/frontend-qa-completion`. Do not edit backend models, routes, services, cron jobs, or deployment code; Person 1 (Devansh) owns those files.
 
 ## Current project context
 
-MindMesh is a React/Vite frontend and Express/MongoDB backend for text, Markdown, and URL notes; semantic retrieval; sharing; and streamed RAG answers. The frontend currently has real-API and mock adapters. Person 1 is actively repairing backend authorization and data contracts before building locks, retrieval modes, chunking, and background processing.
+MindMesh is a React/Vite frontend and Express/MongoDB backend for text, Markdown, and URL notes; semantic retrieval; sharing; and streamed RAG answers. The frontend currently has real-API and mock adapters. Person 1 (Devansh) is actively repairing backend authorization and data contracts before building locks, retrieval modes, chunking, and background processing.
 
 This file is the source of truth for any new chat working as Person 2. Start by reading it, inspect the current `git status`, then read the API contract/Person 1 changes before editing frontend files.
 

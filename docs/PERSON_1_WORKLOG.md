@@ -1,6 +1,6 @@
-# MindMesh Person 1 Worklog and Continuation Guide
+# MindMesh Person 1 (Devansh) Worklog and Continuation Guide
 
-You are Person 1. You own backend data models, authorization, API contracts, search/retrieval, RAG backend behavior, background jobs, backend tests, and backend deployment. Person 2 owns frontend pages/components/services, frontend tests, E2E flows, and frontend deployment configuration.
+You are Person 1 (Devansh). You own backend data models, authorization, API contracts, search/retrieval, RAG backend behavior, background jobs, backend tests, and backend deployment. Person 2 owns frontend pages/components/services, frontend tests, E2E flows, and frontend deployment configuration.
 
 This document is intentionally written so a new chat can continue the work. Read it first, then inspect `git status` and the current diff before changing files.
 

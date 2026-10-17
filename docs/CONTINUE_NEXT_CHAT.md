@@ -2,7 +2,7 @@
 
 ## Current state
 
-Person 1 owns the backend. Person 2 owns the frontend/QA.
+Person 1 (Devansh) owns the backend. Person 2 owns the frontend/QA.
 - Person 2 has reviewed and confirmed the Search and Chunked Retrieval API contract.
 - Backend Milestone 4 (RAG grounded in retrieved chunks, compact JSON brain state, and embedding retries) is completed locally and documented in `docs/PERSON_1_WORKLOG.md` and `docs/PERSON_2_HANDOFF.md`.
 
