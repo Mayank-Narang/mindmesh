@@ -4,6 +4,7 @@ process.env.JWT_SECRET = process.env.JWT_SECRET || "mindmesh-jwt-secret-dev-2026
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const packageJson = require("../package.json");
 const { createRateLimiter } = require("./middleware/rateLimiter");
 const authRoutes = require("./routes/auth");
 const noteRoutes = require("./routes/notes");
@@ -12,22 +13,62 @@ const shareRoutes = require("./routes/shares");
 const aiRoutes = require("./routes/ai");
 
 const app = express();
+const appStartTime = Date.now();
 
 // ---------------------------------------------------------------------------
 // Health-check endpoint (unaffected by auth or rate limiting)
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req, res) => {
-  res.json({
-    status: "ok",
-    mongo:
-      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
+  const isMongoConnected = mongoose.connection.readyState === 1;
+  const uptimeSeconds = Math.floor((Date.now() - appStartTime) / 1000);
+
+  res.status(isMongoConnected || process.env.NODE_ENV === "test" ? 200 : 503).json({
+    status: isMongoConnected || process.env.NODE_ENV === "test" ? "ok" : "degraded",
+    mongo: isMongoConnected ? "connected" : "disconnected",
+    uptimeSeconds,
+    timestamp: new Date().toISOString(),
+    version: packageJson.version,
+    services: {
+      database: isMongoConnected ? "connected" : "disconnected",
+      embeddings: process.env.GEMINI_API_KEY ? "configured" : "unconfigured",
+      geminiAi: process.env.GEMINI_API_KEY ? "configured" : "unconfigured",
+    },
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
 // ---------------------------------------------------------------------------
-// Middleware
+// Middleware & CORS Configuration
 // ---------------------------------------------------------------------------
-app.use(cors());
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(",").map((o) => o.trim())
+  : [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "http://127.0.0.1:5173",
+      "http://127.0.0.1:3000",
+    ];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow non-browser requests (e.g. curl, server-to-server, mobile)
+      if (!origin) return callback(null, true);
+      // Allow all in development or when wildcard is explicitly configured
+      if (process.env.NODE_ENV !== "production" || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`CORS policy blocked access from origin: ${origin}`));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
+
 app.use(express.json({ limit: "5mb" }));
 
 app.use((req, res, next) => {

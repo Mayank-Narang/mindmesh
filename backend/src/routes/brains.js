@@ -2,26 +2,14 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Brain = require("../models/Brain");
 const Note = require("../models/Note");
+const NoteChunk = require("../models/NoteChunk");
 const { authenticate } = require("../middleware/auth");
+const { getBrainAccess, canEdit } = require("../services/access");
 
 const router = express.Router();
 
 // Protect all brain routes with JWT authentication
 router.use(authenticate);
-
-// ---------------------------------------------------------------------------
-// Helper: determine access level for a brain relative to the current user
-// Returns 'owner' | 'collaborator' | 'read' | null
-// ---------------------------------------------------------------------------
-function getAccessLevel(brain, userId, userEmail) {
-  if (brain.author && brain.author.toString() === userId) return "owner";
-  const entry = (brain.sharedWith || []).find(
-    (s) =>
-      (s.user && s.user.toString() === userId) ||
-      (s.email && userEmail && s.email.toLowerCase() === userEmail.toLowerCase())
-  );
-  return entry ? entry.permission : null;
-}
 
 // ---------------------------------------------------------------------------
 // POST /api/brains  —  Create a new brain
@@ -69,7 +57,7 @@ router.get("/", async (req, res, next) => {
       brains.map(async (brain) => {
         const noteCount = await Note.countDocuments({ brain: brain._id });
         const obj = brain.toObject();
-        return { ...obj, id: obj._id.toString(), noteCount };
+        return { ...obj, noteCount };
       })
     );
 
@@ -136,7 +124,7 @@ router.get("/:id", async (req, res, next) => {
     const brain = await Brain.findById(req.params.id);
     if (!brain) return res.status(404).json({ error: "Brain not found" });
 
-    const access = getAccessLevel(brain, req.user.id, req.user.email);
+    const access = getBrainAccess(brain, req.user.id, req.user.email);
     if (!access) {
       return res.status(403).json({ error: "You do not have access to this brain" });
     }
@@ -163,8 +151,8 @@ router.put("/:id", async (req, res, next) => {
     const brain = await Brain.findById(req.params.id);
     if (!brain) return res.status(404).json({ error: "Brain not found" });
 
-    const access = getAccessLevel(brain, req.user.id, req.user.email);
-    if (access !== "owner" && access !== "collaborator") {
+    const access = getBrainAccess(brain, req.user.id, req.user.email);
+    if (!canEdit(access)) {
       return res.status(403).json({ error: "You do not have permission to edit this brain" });
     }
 
@@ -201,6 +189,7 @@ router.delete("/:id", async (req, res, next) => {
     }
 
     await Note.updateMany({ brain: brain._id }, { $set: { brain: null } });
+    await NoteChunk.updateMany({ brain: brain._id }, { $set: { brain: null } });
     await Brain.findByIdAndDelete(brain._id);
 
     res.json({ message: "Brain deleted, notes unlinked" });

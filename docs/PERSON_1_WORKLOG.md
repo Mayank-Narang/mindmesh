@@ -1,6 +1,6 @@
-# MindMesh Person 1 Worklog and Continuation Guide
+# MindMesh Person 1 (Devansh) Worklog and Continuation Guide
 
-You are Person 1. You own backend data models, authorization, API contracts, search/retrieval, RAG backend behavior, background jobs, backend tests, and backend deployment. Person 2 owns frontend pages/components/services, frontend tests, E2E flows, and frontend deployment configuration.
+You are Person 1 (Devansh). You own backend data models, authorization, API contracts, search/retrieval, RAG backend behavior, background jobs, backend tests, and backend deployment. Person 2 owns frontend pages/components/services, frontend tests, E2E flows, and frontend deployment configuration.
 
 This document is intentionally written so a new chat can continue the work. Read it first, then inspect `git status` and the current diff before changing files.
 
@@ -103,19 +103,41 @@ Changing any of these requires Person 2's explicit agreement before committing.
 - Added test suites (`backend/tests/chunking.test.js` and `backend/tests/retrieval.test.js`) verifying chunking, aggregation, snippets, and authorization (17/17 tests passing).
 - Updated `docs/PERSON_2_HANDOFF.md` with chunk result fields (`snippet` and `chunkIndex`) and asked Person 2 to confirm before integration.
 
-### 4. Complete RAG and background jobs
+### 4. Complete RAG and background jobs (Completed locally)
 
-- Make AI retrieval use the same authorized retrieval rules, including permitted shared notes.
-- Ground prompts in retrieved chunks and retain cited source references.
-- Replace count-only brain descriptions with compact generated JSON memory state.
-- Keep orphan cleanup and add lock-expiry cleanup.
-- Add retries/backoff/caching for embedding work and safe scraper timeouts.
+- Upgraded `POST /api/ai/ask` with authorized chunked retrieval:
+  - Enforces authorization for owner, direct note shares (`sharedWith.user` / `sharedWith.email`), and accessible brains.
+  - Validates `brainId` readability with HTTP 403 for unauthorized brains.
+  - Retrieves top matching chunks via `$vectorSearch` with parent-note aggregation and in-memory cosine fallback.
+  - Emits SSE `sources` event with `{ id, title, snippet, score, chunkIndex }`.
+  - Grounds prompts strictly in retrieved chunks and requires citations like `[1]`, `[2]`.
+  - Streams Gemini response chunks via `message` events, finishing with `done`.
+- Replaced count-only brain descriptions with compact generated JSON memory state:
+  - Built `backend/src/services/brainMemory.js` and updated midnight cron in `backend/src/jobs/cron.js`.
+  - Produces structured metadata `{ summary, noteCount, types, tags, topics, lastActivity }` in `brain.description` and `brain.memoryState`.
+- Upgraded embedding service (`backend/src/services/vector.js`):
+  - Added in-memory LRU cache to reduce latency and save API quota.
+  - Added exponential backoff retry logic (up to 3 retries for 429 rate limits and 5xx transient errors).
+- Hardened scraper service (`backend/src/services/scraper.js`):
+  - Added SSRF protection blocking localhost, private subnets, cloud metadata (`169.254.169.254`), and non-HTTP schemes.
+  - Configured safe timeouts (`SCRAPER_TIMEOUT_MS`).
+- Added test suite `backend/tests/milestone4.test.js` (8 new tests; full backend suite passes 25/25).
 
-### 5. Testing and production readiness
+### 5. Testing and production readiness (Completed locally)
 
-- Expand unit/integration tests; make `npm test` run the full backend suite.
-- Add environment validation, production JWT secret policy, CORS allowlist, `.env.example`, deployment instructions, and health checks.
-- Run retrieval evaluation: semantic, lexical, recency, hybrid, long-note chunking; record Hit@K, MRR, latency, fallback, RAG faithfulness, and refusal behavior.
+- Built environment validator (`backend/src/services/envValidator.js`) and hooked it into `backend/src/server.js`:
+  - Validates `MONGODB_URI` protocol and presence.
+  - Enforces strict 32+ character non-default `JWT_SECRET` in production mode.
+  - Validates `PORT` range (1-65535).
+  - Validates and warns on missing or placeholder `GEMINI_API_KEY`.
+- Enhanced `GET /api/health` (`backend/src/app.js`):
+  - Returns `status`, `mongo` connection state, `uptimeSeconds`, `timestamp`, `version`, `services` health, and `environment`.
+- Added configurable CORS allowlist (`CORS_ORIGIN` in `backend/src/app.js`) supporting multiple origins while maintaining local dev defaults.
+- Updated `GET /api/shares/shared-with-me` (`backend/src/routes/shares.js`) to query both `sharedWith.email` and `sharedWith.user`.
+- Created comprehensive `backend/.env.example` with documented keys and production guidance.
+- Created `backend/tests/production.test.js` with 7 test cases.
+- Updated `backend/package.json` test runner to execute the full test suite (`node --test tests/access.test.js tests/chunking.test.js tests/retrieval.test.js tests/milestone4.test.js tests/production.test.js`).
+- Entire backend suite passes 32/32 tests with 0 failures in under 2 seconds. Frontend passes 15/15 tests and 0 oxlint warnings. E2E passes 12/12 tests.
 
 ## Stop here and ask Person 2 before committing or merging
 

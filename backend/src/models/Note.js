@@ -107,6 +107,39 @@ const noteSchema = new mongoose.Schema(
       default: false,
     },
 
+    // ---- collaborative editing ---------------------------------------
+    lockedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
+    lockedAt: {
+      type: Date,
+      default: null,
+    },
+
+    lockExpiresAt: {
+      type: Date,
+      default: null,
+    },
+
+    draftContent: {
+      type: String,
+      default: null,
+    },
+
+    draftUpdatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    version: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     // ---- sharing -------------------------------------------------------
     sharedWith: {
       type: [sharedWithSchema],
@@ -115,6 +148,23 @@ const noteSchema = new mongoose.Schema(
   },
   {
     timestamps: true, // adds createdAt, updatedAt
+    toJSON: {
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        delete ret.embedding;
+        return ret;
+      },
+    },
+    toObject: {
+      transform: (_doc, ret) => {
+        ret.id = ret._id.toString();
+        delete ret._id;
+        delete ret.__v;
+        return ret;
+      },
+    },
   }
 );
 
@@ -124,6 +174,7 @@ const noteSchema = new mongoose.Schema(
 noteSchema.index({ tags: 1 });
 noteSchema.index({ type: 1 });
 noteSchema.index({ createdAt: -1 });
+noteSchema.index({ lockExpiresAt: 1 });
 // Add a text index to support stemming (e.g. "dolls" matches "doll")
 noteSchema.index({ title: 'text', content: 'text' });
 

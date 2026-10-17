@@ -48,31 +48,55 @@ const createEmptyResult = () => ({
   favicon: ''
 });
 
+const DEFAULT_TIMEOUT_MS = parseInt(process.env.SCRAPER_TIMEOUT_MS, 10) || 5000;
+
 /**
- * Helper to validate a URL.
+ * Validates that a URL is a valid HTTP/HTTPS address and not pointing to
+ * private IP space or localhost (SSRF protection).
+ *
  * @param {string} urlString 
  * @returns {boolean}
  */
-const isValidUrl = (urlString) => {
+const isSafeUrl = (urlString) => {
   try {
-    new URL(urlString);
+    const parsed = new URL(urlString);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return false;
+    }
+    const hostname = parsed.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname === '::1' || hostname === '[::1]') {
+      return false;
+    }
+    if (
+      hostname === '0.0.0.0' ||
+      hostname === '127.0.0.1' ||
+      hostname.startsWith('127.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('169.254.') ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    ) {
+      return false;
+    }
     return true;
   } catch (e) {
     return false;
   }
 };
 
+const isValidUrl = isSafeUrl;
+
 /**
  * Extracts metadata from a given URL using metascraper and cheerio fallback.
  * @param {string} targetUrl - The URL to extract metadata from.
- * @param {number} [timeoutMs=10000] - Timeout for the fetch request in milliseconds.
+ * @param {number} [timeoutMs=DEFAULT_TIMEOUT_MS] - Timeout for the fetch request in milliseconds.
  * @returns {Promise<MetadataResult>} The extracted metadata. Never throws.
  */
-async function extractMetadata(targetUrl, timeoutMs = 10000) {
+async function extractMetadata(targetUrl, timeoutMs = DEFAULT_TIMEOUT_MS) {
   const result = createEmptyResult();
 
-  if (!isValidUrl(targetUrl)) {
-    console.warn(`Invalid URL provided for metadata extraction: ${targetUrl}`);
+  if (!isSafeUrl(targetUrl)) {
+    console.warn(`Unsafe or invalid URL rejected for metadata extraction: ${targetUrl}`);
     return result;
   }
 

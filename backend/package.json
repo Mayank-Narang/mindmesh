@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
-    "test": "node --test tests/verify_m1.js",
+    "test": "node --test tests/access.test.js tests/chunking.test.js tests/retrieval.test.js tests/milestone4.test.js tests/production.test.js",
+    "reindex": "node src/scripts/reindexChunks.js",
     "seed": "node ../scripts/seedDummyData.js",
     "seed:clear": "node ../scripts/seedDummyData.js --clear"
   },
