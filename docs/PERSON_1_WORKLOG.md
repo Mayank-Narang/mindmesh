@@ -123,11 +123,21 @@ Changing any of these requires Person 2's explicit agreement before committing.
   - Configured safe timeouts (`SCRAPER_TIMEOUT_MS`).
 - Added test suite `backend/tests/milestone4.test.js` (8 new tests; full backend suite passes 25/25).
 
-### 5. Testing and production readiness
+### 5. Testing and production readiness (Completed locally)
 
-- Expand unit/integration tests; make `npm test` run the full backend suite.
-- Add environment validation, production JWT secret policy, CORS allowlist, `.env.example`, deployment instructions, and health checks.
-- Run retrieval evaluation: semantic, lexical, recency, hybrid, long-note chunking; record Hit@K, MRR, latency, fallback, RAG faithfulness, and refusal behavior.
+- Built environment validator (`backend/src/services/envValidator.js`) and hooked it into `backend/src/server.js`:
+  - Validates `MONGODB_URI` protocol and presence.
+  - Enforces strict 32+ character non-default `JWT_SECRET` in production mode.
+  - Validates `PORT` range (1-65535).
+  - Validates and warns on missing or placeholder `GEMINI_API_KEY`.
+- Enhanced `GET /api/health` (`backend/src/app.js`):
+  - Returns `status`, `mongo` connection state, `uptimeSeconds`, `timestamp`, `version`, `services` health, and `environment`.
+- Added configurable CORS allowlist (`CORS_ORIGIN` in `backend/src/app.js`) supporting multiple origins while maintaining local dev defaults.
+- Updated `GET /api/shares/shared-with-me` (`backend/src/routes/shares.js`) to query both `sharedWith.email` and `sharedWith.user`.
+- Created comprehensive `backend/.env.example` with documented keys and production guidance.
+- Created `backend/tests/production.test.js` with 7 test cases.
+- Updated `backend/package.json` test runner to execute the full test suite (`node --test tests/access.test.js tests/chunking.test.js tests/retrieval.test.js tests/milestone4.test.js tests/production.test.js`).
+- Entire backend suite passes 32/32 tests with 0 failures in under 2 seconds. Frontend passes 15/15 tests and 0 oxlint warnings. E2E passes 12/12 tests.
 
 ## Stop here and ask Person 2 before committing or merging
 

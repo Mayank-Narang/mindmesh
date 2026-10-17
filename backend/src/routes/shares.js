@@ -18,11 +18,17 @@ router.get("/shared-with-me", async (req, res, next) => {
     const userId = req.user.id;
 
     const brains = await Brain.find({
-      "sharedWith.email": userEmail,
+      $or: [
+        { "sharedWith.email": userEmail },
+        { "sharedWith.user": userId },
+      ],
     }).select("-embedding");
 
     const notes = await Note.find({
-      "sharedWith.email": userEmail,
+      $or: [
+        { "sharedWith.email": userEmail },
+        { "sharedWith.user": userId },
+      ],
     }).select("-embedding");
 
     res.json({ brains, notes });
