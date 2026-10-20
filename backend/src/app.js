@@ -16,6 +16,19 @@ const app = express();
 const appStartTime = Date.now();
 
 // ---------------------------------------------------------------------------
+// Root endpoint (friendly JSON response)
+// ---------------------------------------------------------------------------
+app.get("/", (_req, res) => {
+  res.json({
+    name: "MindMesh Backend API",
+    version: packageJson.version,
+    status: "online",
+    health: "/api/health",
+    documentation: "https://github.com/Mayank-Narang/mindmesh#api-reference",
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Health-check endpoint (unaffected by auth or rate limiting)
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req, res) => {
@@ -58,7 +71,13 @@ app.use(
       if (process.env.NODE_ENV !== "production" || allowedOrigins.includes("*")) {
         return callback(null, true);
       }
-      if (allowedOrigins.includes(origin)) {
+      // Allow configured origins, Vercel deployments, and localhost
+      if (
+        allowedOrigins.includes(origin) ||
+        origin.endsWith(".vercel.app") ||
+        origin.startsWith("http://localhost:") ||
+        origin.startsWith("http://127.0.0.1:")
+      ) {
         return callback(null, true);
       }
       return callback(new Error(`CORS policy blocked access from origin: ${origin}`));
