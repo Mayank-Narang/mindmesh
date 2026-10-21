@@ -4,7 +4,12 @@
  * Normalizes all entities so that `id` is the only identifier exposed to UI code.
  */
 
-const BASE = (import.meta.env && import.meta.env.VITE_API_BASE_URL) || 'http://localhost:5000/api';
+const rawBase =
+  (typeof import.meta !== 'undefined' &&
+    import.meta.env &&
+    (import.meta.env.VITE_API_BASE_URL || import.meta.env.VITE_API_URL)) ||
+  'http://localhost:5000/api';
+const BASE = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/$/, '')}/api`;
 
 let authToken = typeof window !== 'undefined' ? localStorage.getItem('mindmesh_token') : null;
 
