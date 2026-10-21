@@ -6,18 +6,33 @@
 
 *Unifying personal notes, technical documentation, and web resources into an intelligent, vector-indexed, RAG-grounded knowledge mesh.*
 
-[🚀 Live Application](https://mindmesh-frontend-eta.vercel.app/) • [📡 Live API](https://mindmesh-be5u.onrender.com/) • [📖 API Health](https://mindmesh-be5u.onrender.com/api/health)
+<br/>
 
----
+[![Live Website](https://img.shields.io/badge/🌐_Website-mindmesh--frontend--eta.vercel.app-000000?style=for-the-badge&logo=vercel&logoColor=white)](https://mindmesh-frontend-eta.vercel.app/)
+[![Live API](https://img.shields.io/badge/⚡_API_Server-mindmesh--be5u.onrender.com-46E3B7?style=for-the-badge&logo=render&logoColor=black)](https://mindmesh-be5u.onrender.com/)
+
+<br/>
+
+👉 **Live Web App**: [https://mindmesh-frontend-eta.vercel.app](https://mindmesh-frontend-eta.vercel.app) • **Backend API**: [https://mindmesh-be5u.onrender.com](https://mindmesh-be5u.onrender.com)
+
+<br/>
 
 [![React](https://img.shields.io/badge/Frontend-React_19_+_Vite-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js_+_Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/Database-MongoDB_Atlas_Vector_Search-47A248?logo=mongodb&logoColor=white)](https://www.mongodb.com/)
 [![Gemini](https://img.shields.io/badge/AI-Google_Gemini_(768d)-4285F4?logo=google&logoColor=white)](https://aistudio.google.com/)
-[![Tests](https://img.shields.io/badge/Tests-100%25_Passing_(62/62)-brightgreen)](file:///c:/Users/Hp/Downloads/Minor%20Project/mindmesh/backend/tests)
+[![Tests](https://img.shields.io/badge/Tests-100%25_Passing_(62/62)-brightgreen)](backend/tests)
 [![License](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
 </div>
+
+---
+
+## 🌐 Live Deployment
+
+* **Frontend Application**: [https://mindmesh-frontend-eta.vercel.app](https://mindmesh-frontend-eta.vercel.app) *(Hosted on Vercel)*
+* **Backend API**: [https://mindmesh-be5u.onrender.com](https://mindmesh-be5u.onrender.com) *(Hosted on Render)*
+* **API Health Check**: [https://mindmesh-be5u.onrender.com/api/health](https://mindmesh-be5u.onrender.com/api/health)
 
 ---
 
