@@ -35,3 +35,10 @@ tests/e2e/reports/
 # Synopsis document (binary, not tracked)
 MindMesh_Minor_Project_Synopsis(1).docx
 *.docx
+
+# Evaluation artifacts & scripts
+backend/eval_results.json
+backend/run_eval.js
+backend/run_eval_fixed.js
+scripts/run_eval.js
+
